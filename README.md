@@ -58,5 +58,6 @@ set psixas {
 energy('psixas',functional='PBE')
 ```
 You will find a file named "WATER_b.spectrum" which can be used to plot the spectrum.
-
-![Alt text](Examples/00_TP_H2O/XASspec.svg?raw=true "NEXAFS Water")
+<p align="center">
+  <img src="Examples/00_TP_H2O/XASspec.svg" align="left" width="350" title="Water NEXAFS">
+</p>

@@ -23,7 +23,38 @@ export PYTHONPATH=/path/to/psi4Plugins
 ```
 
 
-## Example O-K edge of water
-``` python
+## Example: O-K edge of water
+The following input file will perform first a ground state and then a transition potential calculation.
+``` 
+import psixas
 
+molecule {
+  O   0.27681793323501      0.00000014791107      0.00000000000000
+  H   0.86159097690242      0.76505117501585      0.00000000000000
+  H   0.86159108986257     -0.76505132292693      0.00000000000000
+symmetry c1
+}
+
+set {
+  basis def2-TZVP
+}
+
+
+set scf {
+ reference uks
+ scf_type MEM_DF
+}
+
+set psixas {
+  prefix WATER
+  MODE GS+EX+SPEC
+  ORBS [0  ]
+  OCCS [0.5]
+  SPIN [b  ]
+  DAMP 0.2
+  OVL    [T]
+  FREEZE [T]
+}
+energy('psixas',functional='PBE')
 ```
+You will find a file named "WATER_b.spectrum" which can be used to plot the spectrum.

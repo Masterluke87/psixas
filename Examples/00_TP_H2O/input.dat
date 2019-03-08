@@ -1,0 +1,35 @@
+
+# PYTHONPATH must include directory above plugin directory.
+#     Define either externally or here, then import plugin.
+import psixas
+
+molecule {
+  O   0.27681793323501      0.00000014791107      0.00000000000000
+  H   0.86159097690242      0.76505117501585      0.00000000000000
+  H   0.86159108986257     -0.76505132292693      0.00000000000000
+symmetry c1
+}
+
+set {
+  basis def2-TZVP
+}
+
+
+set scf {
+ reference uks
+ scf_type MEM_DF
+}
+
+set psixas {
+  print 1
+  prefix WATER
+  MODE GS+EX+SPEC
+  ORBS [0 ]
+  OCCS [0.5]
+  SPIN [b  ]
+  DAMP 0.2
+  OVL  [T]
+  FREEZE [T]
+}
+energy('psixas',functional='PBE')
+#energy('PBE')

@@ -1,5 +1,5 @@
 # PSIXAS
-A PSI4 plugin to calculate X-ray absorption spectra (NEXAFS, PP-NEXAFS, XPS). The implemented methods are based on the Transition-Potential and $$ \Delta $$-Kohn-Sham methods. For details, please refer to the documentation (will be published soon).
+A PSI4 plugin to calculate X-ray absorption spectra (NEXAFS, PP-NEXAFS, XPS). The implemented methods are based on the Transition-Potential and Delta-Kohn-Sham approach. For details, please refer to the documentation (will be published soon).
 
 Parts of the program were inspired by the [psi4numpy](https://github.com/psi4/psi4numpy) package
 

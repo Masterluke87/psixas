@@ -4,7 +4,7 @@ A PSI4 plugin to calculate X-ray absorption spectra (NEXAFS, PP-NEXAFS, XPS). Th
 Parts of the program were inspired by the [psi4numpy](https://github.com/psi4/psi4numpy) package
 
 ## Install
-To install and use psi4xas, you will need PSI4 already installed on your computer. You can then checkout the repository:
+To install and use psixas, you will need PSI4 already installed on your computer. You can then checkout the repository:
 ``` bash
 cd /path/to/psi4Plugins/
 git clone https://github.com/Masterluke87/psixas/

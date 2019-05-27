@@ -68,7 +68,7 @@ def run_psixas(name, **kwargs):
         wfn     = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))
 
         nbf = wfn.nso()
-        sup = psi4.procrouting.dft_funcs.build_superfunctional(func,False)
+        sup = psi4.procrouting.dft_funcs.build_superfunctional(func,False)[0]
         sup.set_deriv(2)
         sup.allocate()
 

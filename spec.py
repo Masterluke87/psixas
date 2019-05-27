@@ -37,10 +37,10 @@ def CalcSpec(mol,func):
 
     if ("b" in [x['spin'] for x in orbitals]):
         print ("BETA orbitals")
-        orbI = ([c for c,x in enumerate(occb) if x != 1][0])
+        orbI = ([c for c,x in enumerate(occb) if x != 1.0][0])
         print ("Initial Orbital: {:d}".format(orbI))
         Ci = Cb[orbI]
-        orbF = ([c for c,x in enumerate(occb) if (x != 1) and (c!=orbI)])
+        orbF = ([c for c,x in enumerate(occb) if (x != 1.0) and (c!=orbI)])
         print ("Final Orbitals: "+str(orbF))
         Cf = Cb[orbF]
 

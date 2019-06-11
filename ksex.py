@@ -268,8 +268,8 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
             Fa = diisa.extrapolate()
             Fb = diisb.extrapolate()
         elif (MIXMODE == "DAMP") and (SCF_ITER>1):
-            Fa = gamma * np.copy(Fa) + (1-gamma) * FaOld
-            Fb = gamma * np.copy(Fb) + (1-gamma) * FbOld
+            Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
+            Fb = (1-gamma) * np.copy(Fb) + (gamma) * FbOld
         
         myTimer.addEnd("MIX")    
         """

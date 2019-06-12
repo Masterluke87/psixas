@@ -42,10 +42,9 @@ int read_options(std::string name, Options& options)
 {
     if (name == "PSIXAS"|| options.read_globals()) {
         /*- The amount of information printed to the output file -*/
-        options.add_int("PRINT", 1);
         options.add_str("MODE","GS");
         options.add_str("PREFIX", "KS");
-        options.add_double("DAMP", 0.2);
+        options.add_double("DAMP", 0.8);
         options.add_double("DIIS_EPS", 0.1);
 	options.add_double("VSHIFT",0.0);
         options.add_array("ORBS");

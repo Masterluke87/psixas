@@ -11,7 +11,6 @@ def CalcSpec(mol,func):
 
     print ("Using orbitals, occupations from file: {}".format(prefix+"_exorbs.npz"))
 
-    
     Ca = np.load(prefix+"_exorbs.npz")["Ca"]
     Cb = np.load(prefix+"_exorbs.npz")["Cb"]
 

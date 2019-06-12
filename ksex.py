@@ -17,16 +17,13 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     Perform unrestrictred Kohn-Sham excited state calculation
     """
     maxiter = 100
-    E_conv  = 1.0E-5
-    D_conv  = 1.0E-5
+    E_conv  = 1.0E-8
+    D_conv  = 1.0E-6
 
 
     """
-    STEP  read in ground state orbitals
+    STEP 1: Read in ground state orbitals or restart from previous
     """
-
-
-
     prefix = psi4.core.get_local_option("PSIXAS","PREFIX")
 
     if (os.path.isfile(prefix+"_exorbs.npz")):
@@ -164,7 +161,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
 
 
-    psi4.core.print_out(("{:^3} {:^12} {:^12} {:^4} {:^4} | {:^"+str(len(orbitals)*5)+"}| {:^4} {:^5}\n").format("#IT", "Escf",
+    psi4.core.print_out(("{:^3} {:^14} {:^14} {:^4} {:^4} | {:^"+str(len(orbitals)*5)+"}| {:^4} {:^5}\n").format("#IT", "Escf",
          "dEscf","na","nb",
          "OVL","MIX","Time"))
     psi4.core.print_out("="*80+"\n")
@@ -366,7 +363,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
         myTimer.addEnd("SetOcc")
         
         myTimer.addEnd("SCF")
-        psi4.core.print_out(("{:3d} {:12.6f} {:12.6f} {:4.1f} {:4.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^4} {:5.2f} \n").format(
+        psi4.core.print_out(("{:3d} {:14.8f} {:14.8f} {:4.1f} {:4.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^4} {:5.2f} \n").format(
             SCF_ITER,
             SCF_E,
             (SCF_E - Eold),
@@ -375,7 +372,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
             *[x["ovl"] for x in orbitals],
             MIXMODE,
             myTimer.getTime("SCF") ))
-
+        psi4.core.flush_outfile()
         myTimer.printAlltoFile("timers.ksex")
         
         if (abs(SCF_E - Eold) < diis_eps):
@@ -402,7 +399,6 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
     psi4.core.print_out("\n\nFINAL EX SCF ENERGY: {:12.8f} [Ha] \n\n".format(SCF_E))
 
-
     OCCA = psi4.core.Vector(nbf)
     OCCB = psi4.core.Vector(nbf)
     OCCA.np[:] = occa
@@ -416,6 +412,9 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
     uhf.occupation_a().np[:] = occa
     uhf.occupation_b().np[:] = occb
+
+    OCCA.print_out()
+    OCCB.print_out()
 
     mw = psi4.core.MoldenWriter(uhf)
     mw.write(prefix+'_ex.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)

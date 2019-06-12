@@ -47,13 +47,11 @@ def run_psixas(name, **kwargs):
     lowername = name.lower()
     kwargs = p4util.kwargs_lower(kwargs)
 
-    # Your plugin's psi4 run sequence goes here
-    psi4.core.set_local_option('MYPLUGIN', 'PRINT', 1)
+    #print the banner
     printBanner()
 
     mol  = kwargs["molecule"]
     func = kwargs["functional"]
-
 
     tmp = psi4.core.get_local_option("PSIXAS","MODE")
     mode = tmp.split("+")

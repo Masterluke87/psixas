@@ -21,10 +21,9 @@ def DFTGroundState(mol,func,**kwargs):
 
     maxiter = 100
     E_conv  = 1.0E-8
-    D_conv  = 1.0E-5
+    D_conv  = 1.0E-6
 
     prefix = kwargs["PREFIX"]
-
 
     wfn   = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))
     aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", psi4.core.get_global_option('BASIS'))
@@ -63,12 +62,12 @@ def DFTGroundState(mol,func,**kwargs):
     gamma    =  float(psi4.core.get_local_option("PSIXAS","DAMP"))
     diis_eps =  float(psi4.core.get_local_option("PSIXAS","DIIS_EPS"))
     """
-    read
+    Read or Core Guess
     """    
     Cocca       = psi4.core.Matrix(nbf, nalpha)
     Coccb       = psi4.core.Matrix(nbf, nbeta)
     if (os.path.isfile(prefix+"_gsorbs.npz")):
-        psi4.core.print_out("Restarting Calacultion")
+        psi4.core.print_out("Restarting Calculation")
         Ca = np.load(prefix+"_gsorbs.npz")["Ca"]
         Cb = np.load(prefix+"_gsorbs.npz")["Cb"]
         Cocca.np[:]  = Ca[:, :nalpha]
@@ -83,15 +82,11 @@ def DFTGroundState(mol,func,**kwargs):
         Cb,epsb     = diag_H(H,A)        
         Coccb.np[:] = Cb[:, :nbeta]
         Db          = Cb[:, :nbeta] @ Cb[:, :nbeta].T
-
-   
-   
     """
     end read
     """
+
     # Initialize the JK object
- 
- 
     jk = psi4.core.JK.build(wfn.basisset(),aux,"MEM_DF")
     glob_mem = psi4.core.get_memory()/8
     jk.set_memory(int(glob_mem*0.6))
@@ -105,9 +100,8 @@ def DFTGroundState(mol,func,**kwargs):
     psi4.core.print_out(sup.description())
     psi4.core.print_out(sup.citation())
     
-
     psi4.core.print_out("\n DAMP: {:4.2f} \n DIIS_EPS: {:4.2f} \n".format(gamma,diis_eps))
-    psi4.core.print_out("\n\n{:^4} {:^16} {:^16} {:^16} {:^4} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","MIX","Time"))
+    psi4.core.print_out("\n\n{:^4} {:^14} {:^14} {:^14} {:^4} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","MIX","Time"))
     psi4.core.print_out("="*80+"\n")
 
     diisa = DIIS_helper()
@@ -160,7 +154,8 @@ def DFTGroundState(mol,func,**kwargs):
             Fb = diisb.extrapolate()
         elif (MIXMODE == "DAMP") and (SCF_ITER>1):
             Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
-            Fb = (1-gamma_ * np.copy(Fb) + (gamma) * FbOld
+            Fb = (1-gamma) * np.copy(Fb) + (gamma) * FbOld
+
         """
         END DIIS/MIXING
         """
@@ -223,7 +218,8 @@ def DFTGroundState(mol,func,**kwargs):
              (np.sum(np.abs(DaOld-Da)) + np.sum(np.abs(DbOld-Db))),
              MIXMODE,
              myTimer.getTime("SCF")))
-        
+                  
+        psi4.core.flush_outfile()
         if (abs(SCF_E - Eold) < diis_eps):
             MIXMODE = "DIIS"
         else:

@@ -20,7 +20,7 @@ def CalcSpec(mol,func):
     epsa = np.load(prefix+"_exorbs.npz")["epsa"]
     epsb = np.load(prefix+"_exorbs.npz")["epsb"]
 
-    orbitals = np.load(prefix+"_exorbs.npz")["orbitals"]
+    orbitals = np.load(prefix+"_exorbs.npz", allow_pickle=True)["orbitals"]
 
 
     print ("Occupation pattern: ")

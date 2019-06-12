@@ -160,8 +160,7 @@ def DFTGroundState(mol,func,**kwargs):
             Fb = diisb.extrapolate()
         elif (MIXMODE == "DAMP") and (SCF_ITER>1):
             Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
-            Fb = (1-gamma_ * np.copy(Fb) + (gamma) * FbOld
-
+            Fb = (1-gamma) * np.copy(Fb) + (gamma) * FbOld
 
         """
         END DIIS/MIXING

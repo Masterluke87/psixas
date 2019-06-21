@@ -17,7 +17,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     Perform unrestrictred Kohn-Sham excited state calculation
     """
     maxiter = 100
-    E_conv  = 1.0E-8
+    E_conv  = 1.0E-6
     D_conv  = 1.0E-6
 
 

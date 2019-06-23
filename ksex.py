@@ -37,8 +37,6 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     
 
 
-
-
     """
     Grep the coefficients for later overlap
     """
@@ -77,7 +75,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     Va = psi4.core.Matrix(nbf,nbf)
     Vb = psi4.core.Matrix(nbf,nbf)
 
-    sup = psi4.driver.dft.build_superfunctional(func, False)[0]
+    sup = psi4.procrouting.dft_funcs.build_superfunctional(func, False)[0]
     sup.set_deriv(2)
     sup.allocate()
 
@@ -158,6 +156,13 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     diis_eps =  psi4.core.get_local_option("PSIXAS","DIIS_EPS")
     vshift   =  psi4.core.get_local_option("PSIXAS","VSHIFT")
     psi4.core.print_out("\n DAMP: {:4.2f}  DIIS_EPS: {:4.2f} VSHIFT: {:4.2f} \n\n".format(gamma,diis_eps,vshift))
+ 
+    psi4.core.print_out("\nInitial orbital occupation pattern:\n\n")
+    psi4.core.print_out("Index|Spin|Occ|Ovl|Freeze\n"+25*"-")
+    for i in orbitals:
+        psi4.core.print_out("\n{:^5}|{:^4}|{:^3}|{:^3}|{:^6}".format(i["orb"],i["spin"],i["occ"],'Yes' if i["DoOvl"] else 'No','Yes' if i["frz"] else 'No'))
+    psi4.core.print_out("\n\n")
+
 
 
 
@@ -394,10 +399,19 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
 
         if SCF_ITER == maxiter:
-            clean()
+            psi4.core.clean()
             raise Exception("Maximum number of SCF cycles exceeded.")
 
     psi4.core.print_out("\n\nFINAL EX SCF ENERGY: {:12.8f} [Ha] \n\n".format(SCF_E))
+
+    psi4.core.print_out("\nFinal orbital occupation pattern:\n\n")
+    psi4.core.print_out("Index|Spin|Occ|Ovl|Freeze\n"+25*"-")
+    for i in orbitals:
+        psi4.core.print_out("\n{:^5}|{:^4}|{:^3}|{:^3}|{:^6}".format(i["orb"],i["spin"],i["occ"],'Yes' if i["DoOvl"] else 'No','Yes' if i["frz"] else 'No'))
+    psi4.core.print_out("\n\n")
+
+
+
 
     OCCA = psi4.core.Vector(nbf)
     OCCB = psi4.core.Vector(nbf)

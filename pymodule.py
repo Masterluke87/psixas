@@ -66,7 +66,7 @@ def run_psixas(name, **kwargs):
         wfn     = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))
 
         nbf = wfn.nso()
-        sup = psi4.driver.dft.build_superfunctional(func, False)[0]
+        sup = psi4.procrouting.dft_funcs.build_superfunctional(func,False)[0]
         sup.set_deriv(2)
         sup.allocate()
 
@@ -133,7 +133,6 @@ def run_psixas(name, **kwargs):
             raise Exception("Input arrays have inconsistent length"+" ".join(str(lens)))
         for i in range(len(orbs)):
             orbitals.append({"orb" : orbs[i],"spin": spin[i].lower(),"occ" : occs[i], "frz" : freeze[i]=="T","DoOvl":ovl[i] == "T" })
-        print (orbitals)
         DFTExcitedState(mol,func,orbitals)
 
     if ("SPEC" in mode):

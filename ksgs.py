@@ -29,7 +29,7 @@ def DFTGroundState(mol,func,**kwargs):
     aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", psi4.core.get_global_option('BASIS'))
     mints = psi4.core.MintsHelper(wfn.basisset())
 
-    sup = psi4.driver.dft.build_superfunctional(func, False)[0]
+    sup = psi4.procrouting.dft_funcs.build_superfunctional(func, False)[0]
     sup.set_deriv(2)
     sup.allocate()
 

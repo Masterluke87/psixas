@@ -7,8 +7,6 @@ Created on Sun Aug 19 01:57:59 2018
 import psi4
 import numpy as np
 from .kshelper import diag_H,DIIS_helper,Timer
-from tempfile import TemporaryFile
-import pdb
 import os.path
 import time
 
@@ -215,7 +213,7 @@ def DFTGroundState(mol,func,**kwargs):
         psi4.core.print_out(" {:3d} {:14.8f} {:14.8f} {:14.8f} {:^4} {:6.2f}\n".format(SCF_ITER,
              SCF_E,
              (SCF_E - Eold),
-             (np.sum(np.abs(DaOld-Da)) + np.sum(np.abs(DbOld-Db))),
+             (np.mean(np.abs(DaOld-Da)) + np.sum(np.abs(DbOld-Db))),
              MIXMODE,
              myTimer.getTime("SCF")))
                   

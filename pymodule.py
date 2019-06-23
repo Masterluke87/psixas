@@ -133,7 +133,6 @@ def run_psixas(name, **kwargs):
             raise Exception("Input arrays have inconsistent length"+" ".join(str(lens)))
         for i in range(len(orbs)):
             orbitals.append({"orb" : orbs[i],"spin": spin[i].lower(),"occ" : occs[i], "frz" : freeze[i]=="T","DoOvl":ovl[i] == "T" })
-        print (orbitals)
         DFTExcitedState(mol,func,orbitals)
 
     if ("SPEC" in mode):

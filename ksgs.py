@@ -15,7 +15,7 @@ def DFTGroundState(mol,func,**kwargs):
     """
     Perform unrestrictred Kohn-Sham
     """
-    psi4.core.print_out("\nEntering DFT GS-module.\n")
+    psi4.core.print_out("\n\nEntering Ground State Kohn-Sham:\n"+32*"="+"\n\n")
 
     maxiter = 100
     E_conv  = 1.0E-8
@@ -25,14 +25,17 @@ def DFTGroundState(mol,func,**kwargs):
 
     wfn   = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))
     aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", psi4.core.get_global_option('BASIS'))
-    mints = psi4.core.MintsHelper(wfn.basisset())
 
     sup = psi4.driver.dft.build_superfunctional(func, False)[0]
+    psi4.core.be_quiet()
+    mints = psi4.core.MintsHelper(wfn.basisset())
+    
     sup.set_deriv(2)
     sup.allocate()
 
     uhf   = psi4.core.UHF(wfn,sup)
-
+    psi4.core.reopen_outfile()
+    
     S = np.asarray(mints.ao_overlap())
     T = np.asarray(mints.ao_kinetic())
     V = np.asarray(mints.ao_potential())
@@ -95,10 +98,13 @@ def DFTGroundState(mol,func,**kwargs):
     Da_m = psi4.core.Matrix(nbf,nbf)
     Db_m = psi4.core.Matrix(nbf,nbf)
 
+    mol.print_out()
     psi4.core.print_out(sup.description())
     psi4.core.print_out(sup.citation())
     
-    psi4.core.print_out("\n DAMP: {:4.2f} \n DIIS_EPS: {:4.2f} \n".format(gamma,diis_eps))
+    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:4.2f}\n{:>10} {:4.2f} \n".format("DAMP:",gamma,"DIIS_EPS:",diis_eps))
+    
+    
     psi4.core.print_out("\n\n{:^4} {:^14} {:^14} {:^14} {:^4} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","MIX","Time"))
     psi4.core.print_out("="*80+"\n")
 
@@ -266,8 +272,10 @@ def DFTGroundState(mol,func,**kwargs):
     psi4.core.print_out("Moldenfile written\n")
 
     np.savez(prefix+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
-    psi4.core.print_out("Canoncical Orbitals written")
+    psi4.core.print_out("Canoncical Orbitals written\n\n")
 
     psi4.core.set_variable('CURRENT ENERGY', SCF_E)
+    psi4.core.set_variable('GS ENERGY', SCF_E)
+
 
     return uhf

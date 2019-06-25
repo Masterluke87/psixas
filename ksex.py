@@ -16,6 +16,8 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     """
     Perform unrestrictred Kohn-Sham excited state calculation
     """
+    psi4.core.print_out("\nEntering Excited State Kohn-Sham:\n"+33*"="+"\n\n")
+  
     maxiter = 100
     E_conv  = 1.0E-6
     D_conv  = 1.0E-6
@@ -27,7 +29,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     prefix = psi4.core.get_local_option("PSIXAS","PREFIX")
 
     if (os.path.isfile(prefix+"_exorbs.npz")):
-        psi4.core.print_out("Restarting Calacultion")
+        psi4.core.print_out("Restarting Calculation\n")
         Ca = np.load(prefix+"_exorbs.npz")["Ca"]
         Cb = np.load(prefix+"_exorbs.npz")["Cb"]
     else:
@@ -52,6 +54,8 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
     wfn   = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))
     aux     = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", psi4.core.get_global_option('BASIS'))
+
+    psi4.core.be_quiet()
     mints = psi4.core.MintsHelper(wfn.basisset())
 
     S = np.asarray(mints.ao_overlap())
@@ -84,7 +88,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
     #This object is needed to write out a molden file later
     uhf   = psi4.core.UHF(wfn,sup)
-
+    psi4.core.reopen_outfile()
     """
     Form initial denisty
     """
@@ -155,7 +159,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     gamma    =  psi4.core.get_local_option("PSIXAS","DAMP")
     diis_eps =  psi4.core.get_local_option("PSIXAS","DIIS_EPS")
     vshift   =  psi4.core.get_local_option("PSIXAS","VSHIFT")
-    psi4.core.print_out("\n DAMP: {:4.2f}  DIIS_EPS: {:4.2f} VSHIFT: {:4.2f} \n\n".format(gamma,diis_eps,vshift))
+    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:4.2f}\n{:>10} {:4.2f}\n{:>10} {:4.2f}\n\n".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"VSHIFT:",vshift))
  
     psi4.core.print_out("\nInitial orbital occupation pattern:\n\n")
     psi4.core.print_out("Index|Spin|Occ|Ovl|Freeze\n"+25*"-")
@@ -402,7 +406,17 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
             psi4.core.clean()
             raise Exception("Maximum number of SCF cycles exceeded.")
 
-    psi4.core.print_out("\n\nFINAL EX SCF ENERGY: {:12.8f} [Ha] \n\n".format(SCF_E))
+    psi4.core.print_out("\n\n{:>20} {:12.8f} [Ha] \n".format("FINAL EX SCF ENERGY:",SCF_E))
+
+    
+    gsE = psi4.core.get_variable('GS ENERGY')
+    if gsE!=0.0:
+        psi4.core.print_out("{:>20} {:12.8f} [Ha] \n".format("EXCITATION ENERGY:",SCF_E-gsE))
+        psi4.core.print_out("{:>20} {:12.8f} [eV] \n\n".format("EXCITATION ENERGY:",(SCF_E-gsE)*27.211385))
+    
+
+    
+
 
     psi4.core.print_out("\nFinal orbital occupation pattern:\n\n")
     psi4.core.print_out("Index|Spin|Occ|Ovl|Freeze\n"+25*"-")

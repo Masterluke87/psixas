@@ -162,6 +162,6 @@ def printBanner():
                 _| """ | _|"""""| _|"""""| _|"""""| _|"""""| _|"""""| 
                 "`-0-0-' "`-0-0-' "`-0-0-' "`-0-0-' "`-0-0-' "`-0-0-' 
                 
-                         An X-Ray absoption plugin for PSI4
+                         An X-Ray Absorption Plugin for PSI4
     '''
     psi4.core.print_out(Banner)

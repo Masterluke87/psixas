@@ -5,11 +5,11 @@ import pickle
 
 
 def CalcSpec(mol,func):
-    print ("X-Ray spectrum calculation:")
+    psi4.core.print_out("\n\nX-Ray Absorption Spectrum Calcaultion:\n"+39*"="+"\n\n")
     prefix = psi4.core.get_local_option("PSIXAS","PREFIX")
 
 
-    print ("Using orbitals, occupations from file: {}".format(prefix+"_exorbs.npz"))
+     psi4.core.print_out("Using orbitals, occupations from file: {}  \n".format(prefix+"_exorbs.npz"))
 
     Ca = np.load(prefix+"_exorbs.npz")["Ca"]
     Cb = np.load(prefix+"_exorbs.npz")["Cb"]
@@ -23,10 +23,10 @@ def CalcSpec(mol,func):
     orbitals = np.load(prefix+"_exorbs.npz", allow_pickle=True)["orbitals"]
 
 
-    print ("Occupation pattern: ")
-    print (occa)
-    print (occb)
-
+    psi4.core.print_out("Occupation pattern: ")
+    psi4.core.print_out("{} \n".format("".join(occa))
+    psi4.core.print_out("{} \n".format("".join(occb))
+    
     wfn   = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))
     mints = psi4.core.MintsHelper(wfn.basisset())
 
@@ -36,12 +36,12 @@ def CalcSpec(mol,func):
     spec = {}
 
     if ("b" in [x['spin'] for x in orbitals]):
-        print ("BETA orbitals")
+        psi4.core.print_out("BETA orbitals")
         orbI = ([c for c,x in enumerate(occb) if x != 1.0][0])
-        print ("Initial Orbital: {:d}".format(orbI))
+        psi4.core.print_out("Initial Orbital: {:d}".format(orbI))
         Ci = Cb[orbI]
         orbF = ([c for c,x in enumerate(occb) if (x != 1.0) and (c!=orbI)])
-        print ("Final Orbitals: "+str(orbF))
+        psi4.core.print_out("Final Orbitals: {} "+str("".join(orbF))
         Cf = Cb[orbF]
 
         Mx = Cb.T @ Dx @ Cb

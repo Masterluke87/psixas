@@ -63,10 +63,12 @@ for i in inputf["center"]:
         print("\nSpectrum {} at center {}:".format(c,i["label"]))
         print("Molden File    : {}".format(j["molden"]))
         print("Spectrum File  : {}".format(j["spectrum"]))
+        print("Type           : {}".format(j["type"]))
         print("1st Exc D-KS   : {} [eV]".format(j["excitaion"]))
         j["shift"] = findShift(j["spectrum"],j["excitaion"])
+        j["core"] = float(findCoreOrbital(j["molden"])[1])*27.211385
         print("Shift          : {} [eV]".format(j["shift"]))
-        print("Type           : {}".format(j["type"]))
+        print("Core Orbital E : {} [eV]".format(j["core"]))
 
 """
 Now we have to sort the excitation centers wrt. to energies and also give them
@@ -85,6 +87,23 @@ Grep the molden Header
 """
 print("Takeing moleden header from:{}".format(inputf["center"][0]["spectra"][0]["molden"]))
 inputf["moldenHeader"] = findMoldenHeader(inputf["center"][0]["spectra"][0]["molden"])
+
+"""
+1. Iterate over all centers and find the empty Beta orbitals.
+2. Set their energies to the exitation energies and apply the shift
+"""
+
+
+
+
+
+
+
+
+
+
+
+
 
 json.dump(inputf,open("output.json","w"),indent=4)
 

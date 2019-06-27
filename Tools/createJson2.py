@@ -1,7 +1,7 @@
 import json
 import sys
 import pickle
-
+import copy
 
 def findShift(spectrum, excitation):
     """
@@ -57,7 +57,7 @@ print("Number of excitation centers: {}".format(len(inputf["center"])))
 
 for i in inputf["center"]:
     print("Center: {}".format(i["label"]))
-    print("Number of Spectra: {}".format(len(i)))
+    print("Number of Spectra: {}".format(len(i["spectra"])))
     i["CoreOrb"],i["CoreEn"] =  findCoreOrbital(i["spectra"][0]["molden"])
     for c,j in enumerate(i["spectra"]):
         print("\nSpectrum {} at center {}:".format(c,i["label"]))
@@ -93,24 +93,56 @@ inputf["moldenHeader"] = findMoldenHeader(inputf["center"][0]["spectra"][0]["mol
 2. Set their energies to the exitation energies and apply the shift
 """
 
+Orbs = []
+for i in inputf["center"]:
+   for j in i["spectra"]:
+       Molden = open(j["molden"]).readlines()
+       idx = [c for c,x in enumerate(Molden) if "[MO]" in x][0]
+       moPart = Molden[idx+1:]
+       idx = [c for c,x in enumerate(moPart) if "Sym" in x]
+       for k in range(1,len(idx)):
+           X = "".join((moPart[idx[k-1]:idx[k]]))
+           if "Beta" in X:
+               X2 = X.split("\n")
+               occ = float([x.split("=")[1] for x in X2 if "Occup=" in x][0])
+               if (occ==0.0):
+                   En = float([x.split("=")[1] for x in X2 if "Ene=" in x][0])
+                   for c,l in enumerate(X2):
+                       if "Ene=" in l:
+                           X2[c]=" Ene="+str((En*27.211385-j["core"])+float(j["shift"]))
+                       if "Sym=" in l:
+                           X2[c]=" Sym="+str(j["ID"])
+      
+                   Orbs.append("\n".join(X2))
+       
+       X = "".join((moPart[idx[k]:]))
+       if "Beta" in X:
+           X2 = X.split("\n")
+           occ = float([x.split("=")[1] for x in X2 if "Occup=" in x][0])
+           if (occ ==0.0):
+               En = float([x.split("=")[1] for x in X2 if "Ene=" in x][0])
+               for c,l in enumerate(X2):
+                   if "Ene=" in l:
+                       X2[c]=" Ene="+str((En*27.211385-j["core"])+float(j["shift"]))
+                   if "Sym=" in l:
+                       X2[c]=" Sym="+str(j["ID"])
+               Orbs.append("\n".join(X2))
+       
 
-
-
-
-
-
-
-
-
-
-
+inputf["Molden"] = copy.deepcopy(inputf["moldenHeader"])
+X = ([x.split("\n") for x in Orbs])
+print(X)
+for i in inputf["center"]:
+    inputf["Molden"].extend([x+"\n" for x in i["CoreOrb"].split("\n") if x!=""])
+for i in X:
+    inputf["Molden"].extend([x+"\n" for x in i if x!=""])
 
 json.dump(inputf,open("output.json","w"),indent=4)
-
 data = {} 
 
-
-
+f = open("output.molden","w")
+for i in inputf["Molden"]:
+    f.write(i)
 
 
 

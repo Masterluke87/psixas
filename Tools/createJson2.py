@@ -2,18 +2,91 @@ import json
 import sys
 import pickle
 
+
+def findShift(spectrum, excitation):
+    """
+    Finds the shift, if the given excitation energy is equal to 0.0
+    the shift is also zero
+    """
+    if excitation==0.0:
+        return 0.0
+
+    f = pickle.load(open(spectrum,"rb"))
+    firstExcitation =  f["En"][0]*27.211385
+    print("1st Exc TP-DFT : {} [eV]".format(firstExcitation))
+    shift = (excitation-firstExcitation)
+    return shift
+
+def findMoldenHeader(moldenFile):
+    Molden = open(moldenFile).readlines()
+    idx = [c for c,x in enumerate(Molden) if "[MO]" in x][0]
+    header = Molden[:idx]
+    header.append("[MO]\n")
+    return header
+ 
+ 
+
+def findCoreOrbital(moldenFile):
+    """
+    Find one the corebital (occupation less than 1.0, but greater than 0.0)
+    """
+    Molden = open(moldenFile).readlines()
+    idx = [c for c,x in enumerate(Molden) if "[MO]" in x][0]
+    moPart = Molden[idx+1:]
+    idx = [c for c,x in enumerate(moPart) if "Sym" in x]
+    coreOrb = ""
+    for i in range(1,len(idx)):
+        X = "".join((moPart[idx[i-1]:idx[i]]))
+        if "Beta" in X:
+            X2 = X.split("\n")
+            occ = float([x.split("=")[1] for x in X2 if "Occup=" in x][0])
+
+            if ((occ>0.0) and (occ<1.0)):
+                coreEn = float([x.split("=")[1] for x in X2 if "Ene=" in x][0])
+                coreOrb = X
+    return coreOrb,coreEn
+    
+    
+
+
+
+
 inputf  = json.load(open(sys.argv[1],"r"))
 
 print("Number of excitation centers: {}".format(len(inputf["center"])))
 
-print(inputf["center"])
 for i in inputf["center"]:
-    print("Center: {}".format(i))
+    print("Center: {}".format(i["label"]))
     print("Number of Spectra: {}".format(len(i)))
-    for j in inputf["center"][i]:
+    i["CoreOrb"],i["CoreEn"] =  findCoreOrbital(i["spectra"][0]["molden"])
+    for c,j in enumerate(i["spectra"]):
+        print("\nSpectrum {} at center {}:".format(c,i["label"]))
         print("Molden File    : {}".format(j["molden"]))
         print("Spectrum File  : {}".format(j["spectrum"]))
-        print("1st Excitation : {} [eV]".format(j["excitaion"]))
+        print("1st Exc D-KS   : {} [eV]".format(j["excitaion"]))
+        j["shift"] = findShift(j["spectrum"],j["excitaion"])
+        print("Shift          : {} [eV]".format(j["shift"]))
+        print("Type           : {}".format(j["type"]))
+
+"""
+Now we have to sort the excitation centers wrt. to energies and also give them
+an id...
+"""
+inputf["center"] = sorted(inputf["center"], key = lambda x: x["CoreEn"])
+counter = 0
+for i in inputf["center"]:
+    for j in i["spectra"]:
+        j["ID"] = counter
+        counter = counter+1
+    
+
+"""
+Grep the molden Header
+"""
+print("Takeing moleden header from:{}".format(inputf["center"][0]["spectra"][0]["molden"]))
+inputf["moldenHeader"] = findMoldenHeader(inputf["center"][0]["spectra"][0]["molden"])
+
+json.dump(inputf,open("output.json","w"),indent=4)
 
 data = {} 
 

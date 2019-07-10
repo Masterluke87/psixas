@@ -76,9 +76,13 @@ an id...
 """
 inputf["center"] = sorted(inputf["center"], key = lambda x: x["CoreEn"])
 counter = 0
+coreID  = 1
 for i in inputf["center"]:
+    i["ID"] = coreID
+    coreID = coreID +1
     for j in i["spectra"]:
         j["ID"] = counter
+        j["coreID"] = coreID
         counter = counter+1
     
 
@@ -131,22 +135,37 @@ for i in inputf["center"]:
 
 inputf["Molden"] = copy.deepcopy(inputf["moldenHeader"])
 X = ([x.split("\n") for x in Orbs])
-print(X)
 for i in inputf["center"]:
     inputf["Molden"].extend([x+"\n" for x in i["CoreOrb"].split("\n") if x!=""])
 for i in X:
     inputf["Molden"].extend([x+"\n" for x in i if x!=""])
 
-json.dump(inputf,open("output.json","w"),indent=4)
 data = {} 
-
+data["spec"] = []
 f = open("output.molden","w")
 for i in inputf["Molden"]:
     f.write(i)
 
+for i in inputf["center"]:
+    for j in i["spectra"]:
+        X = pickle.load(open(j["spectrum"],"rb"))
+        for E,X,Y,Z in zip(X["En"],X["Dx"],X["Dy"],X["Dz"]):
+            data["spec"].append({"ID" : j["ID"],
+                             "coreID" : i["ID"],
+                             "type"   : j["type"],
+                             "shift" : float(j["shift"]),
+                             "En" : float(E*27.211385)+j["shift"],
+                             "Dx" : float(X),
+                             "Dy" : float(Y),
+                             "Dz" : float(Z),
+                             "Tot": float(X**2+Y**2+Z**2)})
 
 
+data["spec"] = sorted(data["spec"], key=lambda x: x['En'])
 
+inputf["spec"] = copy.deepcopy(data["spec"])
+del inputf["moldenHeader"]
+json.dump(inputf,open("output.json","w"),indent=4)
 
 
 

@@ -17,14 +17,15 @@ def DFTGroundState(mol,func,**kwargs):
     """
     psi4.core.print_out("\n\nEntering Ground State Kohn-Sham:\n"+32*"="+"\n\n")
 
-    maxiter = 100
+    maxiter = int(psi4.core.get_local_option("PSIXAS","MAXITER"))
     E_conv  = 1.0E-8
     D_conv  = 1.0E-6
 
     prefix = kwargs["PREFIX"]
 
-    wfn   = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))
-    aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", psi4.core.get_global_option('BASIS'))
+    basis = psi4.core.get_global_option('BASIS')
+    wfn   = psi4.core.Wavefunction.build(mol,basis)
+    aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", basis)
 
     sup = psi4.driver.dft.build_superfunctional(func, False)[0]
     psi4.core.be_quiet()
@@ -42,6 +43,10 @@ def DFTGroundState(mol,func,**kwargs):
     H = np.zeros((mints.nbf(),mints.nbf()))
 
     H = T+V
+
+    if wfn.basisset().has_ECP():
+        ECP = mints.ao_ecp()
+        H += ECP
 
     A = mints.ao_overlap()
     A.power(-0.5,1.e-16)
@@ -102,7 +107,7 @@ def DFTGroundState(mol,func,**kwargs):
     psi4.core.print_out(sup.description())
     psi4.core.print_out(sup.citation())
     
-    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:4.2f}\n{:>10} {:4.2f} \n".format("DAMP:",gamma,"DIIS_EPS:",diis_eps))
+    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:8.4f}\n{:>10} {:8.4f} \n{:>10} {:4d}\n".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"MAXITER:",maxiter))
     
     
     psi4.core.print_out("\n\n{:^4} {:^14} {:^14} {:^14} {:^4} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","MIX","Time"))
@@ -144,19 +149,20 @@ def DFTGroundState(mol,func,**kwargs):
         """
         DIIS/MIXING
         """
+        diisa_e = Fa.dot(Da).dot(S) - S.dot(Da).dot(Fa)
+        diisa_e = (A.T).dot(diisa_e).dot(A)
+        diisa.add(Fa, diisa_e)
+
+        diisb_e = Fb.dot(Db).dot(S) - S.dot(Db).dot(Fb)
+        diisb_e = (A.T).dot(diisb_e).dot(A)
+        diisb.add(Fb, diisb_e)
+
         if (MIXMODE == "DIIS") and (SCF_ITER>1):
-            diisa_e = Fa.dot(Da).dot(S) - S.dot(Da).dot(Fa)
-            diisa_e = (A.T).dot(diisa_e).dot(A)
-            diisa.add(Fa, diisa_e)
-
-            diisb_e = Fb.dot(Db).dot(S) - S.dot(Db).dot(Fb)
-            diisb_e = (A.T).dot(diisb_e).dot(A)
-            diisb.add(Fb, diisb_e)
-
             # Extrapolate alpha & beta Fock matrices separately
             Fa = diisa.extrapolate()
             Fb = diisb.extrapolate()
         elif (MIXMODE == "DAMP") and (SCF_ITER>1):
+            #...but use damping to obtain the new Fock matrices
             Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
             Fb = (1-gamma) * np.copy(Fb) + (gamma) * FbOld
 

@@ -18,7 +18,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     """
     psi4.core.print_out("\nEntering Excited State Kohn-Sham:\n"+33*"="+"\n\n")
   
-    maxiter = 100
+    maxiter = int(psi4.core.get_local_option("PSIXAS","MAXITER"))
     E_conv  = 1.0E-6
     D_conv  = 1.0E-6
 
@@ -262,18 +262,11 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
         diisb.add(Fb, diisb_e)
 
         if (MIXMODE == "DIIS") and (SCF_ITER>1):
-            diisa_e = Fa.dot(Da).dot(S) - S.dot(Da).dot(Fa)
-            diisa_e = (A.T).dot(diisa_e).dot(A)
-            diisa.add(Fa, diisa_e)
-
-            diisb_e = Fb.dot(Db).dot(S) - S.dot(Db).dot(Fb)
-            diisb_e = (A.T).dot(diisb_e).dot(A)
-            diisb.add(Fb, diisb_e)
-
             # Extrapolate alpha & beta Fock matrices separately
             Fa = diisa.extrapolate()
             Fb = diisb.extrapolate()
         elif (MIXMODE == "DAMP") and (SCF_ITER>1):
+            # Use Damping to obtain the new Fock matrices
             Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
             Fb = (1-gamma) * np.copy(Fb) + (gamma) * FbOld
         

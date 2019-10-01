@@ -47,6 +47,7 @@ int read_options(std::string name, Options& options)
         options.add_double("DAMP", 0.8);
         options.add_double("DIIS_EPS", 0.1);
 	options.add_double("VSHIFT",0.0);
+	options.add_int("MAXITER",100);
         options.add_array("ORBS");
         options.add_array("OCCS");
         options.add_array("SPIN");

@@ -107,18 +107,20 @@ def DFTGroundState(mol,func,**kwargs):
     psi4.core.print_out(sup.description())
     psi4.core.print_out(sup.citation())
     
-    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:8.4f}\n{:>10} {:8.4f} \n{:>10} {:4d}\n".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"MAXITER:",maxiter))
+        
+    diis_len = psi4.core.get_local_option("PSIXAS","DIIS_LEN")
+    diisa = DIIS_helper(max_vec=diis_len)
+    diisb = DIIS_helper(max_vec=diis_len)
     
-    
-    psi4.core.print_out("\n\n{:^4} {:^14} {:^14} {:^14} {:^4} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","MIX","Time"))
-    psi4.core.print_out("="*80+"\n")
-
-    diisa = DIIS_helper()
-    diisb = DIIS_helper()
+    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:8.4f}\n{:>10}
+    {:8.4f} \n{:>10} {:4d}\n{:>10} {:4d}".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"MAXITER:",maxiter,"DIIS_LEN:",diis_len))
 
     myTimer = Timer()
 
     MIXMODE = "DAMP"
+    psi4.core.print_out("\n\n{:^4} {:^14} {:^14} {:^14} {:^4} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","MIX","Time"))
+    psi4.core.print_out("="*80+"\n")
+
     for SCF_ITER in range(1, maxiter + 1):
         myTimer.addStart("SCF")     
         jk.compute()

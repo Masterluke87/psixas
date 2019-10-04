@@ -64,6 +64,9 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     H = np.zeros((mints.nbf(),mints.nbf()))
 
     H = T+V
+    if wfn.basisset().has_ECP():
+        ECP = mints.ao_ecp()
+        H += ECP                
 
     A = mints.ao_overlap()
     A.power(-0.5,1.e-16)
@@ -152,14 +155,16 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
     Da_m = psi4.core.Matrix(nbf,nbf)
     Db_m = psi4.core.Matrix(nbf,nbf)
-
-    diisa = DIIS_helper()
-    diisb = DIIS_helper()
+    
+    diis_len = psi4.core.get_local_option("PSIXAS","DIIS_LEN")
+    diisa = DIIS_helper(max_vec=diis_len)
+    diisb = DIIS_helper(max_vec=diis_len)
 
     gamma    =  psi4.core.get_local_option("PSIXAS","DAMP")
     diis_eps =  psi4.core.get_local_option("PSIXAS","DIIS_EPS")
     vshift   =  psi4.core.get_local_option("PSIXAS","VSHIFT")
-    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:4.2f}\n{:>10} {:4.2f}\n{:>10} {:4.2f}\n\n".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"VSHIFT:",vshift))
+    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:4.2f}\n{:>10} {:4.2f}\n{:>10} {:4.2f}\n{:>10} {:4d}\n{:>10} {:4d}\n\n".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"VSHIFT:",vshift,"MAXITER",maxiter,"DIIS_LEN",diis_len))
+
  
     psi4.core.print_out("\nInitial orbital occupation pattern:\n\n")
     psi4.core.print_out("Index|Spin|Occ|Ovl|Freeze\n"+25*"-")
@@ -170,7 +175,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
 
 
-    psi4.core.print_out(("{:^3} {:^14} {:^14} {:^4} {:^4} | {:^"+str(len(orbitals)*5)+"}| {:^4} {:^5}\n").format("#IT", "Escf",
+    psi4.core.print_out(("{:^3} {:^14} {:^14} {:^5} {:^5} | {:^"+str(len(orbitals)*5)+"}| {:^4} {:^5}\n").format("#IT", "Escf",
          "dEscf","na","nb",
          "OVL","MIX","Time"))
     psi4.core.print_out("="*80+"\n")
@@ -365,7 +370,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
         myTimer.addEnd("SetOcc")
         
         myTimer.addEnd("SCF")
-        psi4.core.print_out(("{:3d} {:14.8f} {:14.8f} {:4.1f} {:4.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^4} {:5.2f} \n").format(
+        psi4.core.print_out(("{:3d} {:14.8f} {:14.8f} {:5.1f} {:5.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^4} {:5.2f} \n").format(
             SCF_ITER,
             SCF_E,
             (SCF_E - Eold),

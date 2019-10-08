@@ -87,6 +87,14 @@ class DIIS_helper(object):
 
         self.error.append(error.ravel().copy())
         self.vector.append(state.copy())
+        
+        # Limit size of DIIS vector
+        diis_count = len(self.vector)
+        if diis_count > self.max_vec:
+            # Remove oldest vector
+            del self.vector[0]
+            del self.error[0]
+            diis_count -= 1
 
     def extrapolate(self):
         """

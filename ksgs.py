@@ -81,6 +81,35 @@ def DFTGroundState(mol,func,**kwargs):
         Coccb.np[:]  = Cb[:, :nbeta]
         Db     = Cb[:, :nbeta] @ Cb[:, :nbeta].T
     else:
+        """
+        SADNO guess, heavily inspired by the psi4 implementation
+        """
+        psi4.core.print_out("Creating SADNO guess\n\n")
+        sad_basis_list = psi4.core.BasisSet.build(mol, "ORBITAL",
+                basis,puream=True,return_atomlist=True)
+        sad_fitting_list = psi4.core.BasisSet.build(mol,"DF_BASIS_SAD",
+                psi4.core.get_option("SCF", "DF_BASIS_SAD"),puream=True, return_atomlist=True)
+        SAD = psi4.core.SADGuess.build_SAD(wfn.basisset(), sad_basis_list)
+        SAD.set_atomic_fit_bases(sad_fitting_list)
+        SAD.compute_guess();
+        Da = SAD.Da().np
+
+        Dhelp = -1.0 * np.copy(Da)
+        Dhelp = A.T @ S.T @ Dhelp @ S @ A
+
+        ea,C1 = np.linalg.eigh(Dhelp)
+
+        Ca = A @ C1
+        Cb = np.copy(Ca)
+        
+        Cocca.np[:] = Ca[:, :nalpha]
+        Coccb.np[:] = Cb[:, :nbeta]
+     
+        #This is the guess!
+        Da  = Cocca.np @ Cocca.np.T
+        Db  = Coccb.np @ Coccb.np.T
+ 
+        """
         Ca,epsa     = diag_H(H,A)       
         Cocca.np[:] = Ca[:, :nalpha]
         Da          = Ca[:, :nalpha] @ Ca[:, :nalpha].T
@@ -88,12 +117,13 @@ def DFTGroundState(mol,func,**kwargs):
         Cb,epsb     = diag_H(H,A)        
         Coccb.np[:] = Cb[:, :nbeta]
         Db          = Cb[:, :nbeta] @ Cb[:, :nbeta].T
+        """
     """
     end read
     """
 
     # Initialize the JK object
-    jk = psi4.core.JK.build(wfn.basisset(),aux,"MEM_DF")
+    jk = psi4.core.JK.build_JK(wfn.basisset(),aux)
     glob_mem = psi4.core.get_memory()/8
     jk.set_memory(int(glob_mem*0.6))
     jk.initialize()
@@ -106,19 +136,19 @@ def DFTGroundState(mol,func,**kwargs):
     mol.print_out()
     psi4.core.print_out(sup.description())
     psi4.core.print_out(sup.citation())
-    
+    psi4.core.print_out("\n\n")
+    jk.print_header()
         
     diis_len = psi4.core.get_local_option("PSIXAS","DIIS_LEN")
     diisa = DIIS_helper(max_vec=diis_len)
     diisb = DIIS_helper(max_vec=diis_len)
     
-    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:8.4f}\n{:>10}
-    {:8.4f} \n{:>10} {:4d}\n{:>10} {:4d}".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"MAXITER:",maxiter,"DIIS_LEN:",diis_len))
+    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:8.4f}\n{:>10} {:8.4f} \n{:>10} {:4d}\n{:>10} {:4d}".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"MAXITER:",maxiter,"DIIS_LEN:",diis_len))
 
     myTimer = Timer()
 
     MIXMODE = "DAMP"
-    psi4.core.print_out("\n\n{:^4} {:^14} {:^14} {:^14} {:^4} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","MIX","Time"))
+    psi4.core.print_out("\n\n{:^4} {:^14} {:^11} {:^11} {:^11} {:^4} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","DIIS-E","MIX","Time"))
     psi4.core.print_out("="*80+"\n")
 
     for SCF_ITER in range(1, maxiter + 1):
@@ -219,17 +249,22 @@ def DFTGroundState(mol,func,**kwargs):
         END DIAG F + BUILD D
         """
 
+        DError = (np.sum((DaOld-Da)**2)**0.5 + np.sum((DbOld-Db)**2)**0.5)/2
+        EError = (SCF_E - Eold)
+
         """
         OUTPUT
         """
-
         myTimer.addEnd("SCF")
-        psi4.core.print_out(" {:3d} {:14.8f} {:14.8f} {:14.8f} {:^4} {:6.2f}\n".format(SCF_ITER,
+        psi4.core.print_out(" {:3d} {:14.8f} {:11.3E} {:11.3E} {:11.3E} {:^4} {:6.2f} {:2d} {:2d} \n".format(SCF_ITER,
              SCF_E,
-             (SCF_E - Eold),
-             (np.mean(np.abs(DaOld-Da)) + np.sum(np.abs(DbOld-Db))),
+             EError,
+             DError,
+             np.mean(diisa_e**2)**0.5,
              MIXMODE,
-             myTimer.getTime("SCF")))
+             myTimer.getTime("SCF"),
+             len(diisa.vector),
+             len(diisb.vector)))
                   
         psi4.core.flush_outfile()
         if (abs(SCF_E - Eold) < diis_eps):
@@ -237,7 +272,7 @@ def DFTGroundState(mol,func,**kwargs):
         else:
             MIXMODE = "DAMP"        
         
-        if (abs(SCF_E - Eold) < E_conv):
+        if (abs(EError) < E_conv) and (abs(DError)<D_conv):
             break
 
         Eold = SCF_E

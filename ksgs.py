@@ -18,8 +18,8 @@ def DFTGroundState(mol,func,**kwargs):
     psi4.core.print_out("\n\nEntering Ground State Kohn-Sham:\n"+32*"="+"\n\n")
 
     maxiter = int(psi4.core.get_local_option("PSIXAS","MAXITER"))
-    E_conv  = 1.0E-8
-    D_conv  = 1.0E-6
+    E_conv  = float(psi4.core.get_local_option("PSIXAS","E_GS_CONV"))
+    D_conv  = float(psi4.core.get_local_option("PSIXAS","D_GS_CONV"))
 
     prefix = kwargs["PREFIX"]
 
@@ -143,7 +143,21 @@ def DFTGroundState(mol,func,**kwargs):
     diisa = DIIS_helper(max_vec=diis_len)
     diisb = DIIS_helper(max_vec=diis_len)
     
-    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:8.4f}\n{:>10} {:8.2E} \n{:>10} {:8d}\n{:>10} {:8d}".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"MAXITER:",maxiter,"DIIS_LEN:",diis_len))
+    psi4.core.print_out("""
+Starting SCF:
+"""+13*"="+"""\n
+{:>10} {:8.2E}
+{:>10} {:8.2E}
+{:>10} {:8.4f}
+{:>10} {:8.2E}
+{:>10} {:8d}
+{:>10} {:8d}""".format(
+    "E_CONV:",E_conv,
+    "D_CONV:",D_conv,
+    "DAMP:",gamma,
+    "DIIS_EPS:",diis_eps,
+    "MAXITER:",maxiter,
+    "DIIS_LEN:",diis_len))
 
     myTimer = Timer()
 

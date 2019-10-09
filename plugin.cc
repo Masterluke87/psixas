@@ -45,6 +45,10 @@ int read_options(std::string name, Options& options)
         options.add_str("MODE","GS");
         options.add_str("PREFIX", "KS");
         options.add_double("DAMP", 0.8);
+	options.add_double("E_GS_CONV",1.0E-8);
+	options.add_double("E_EX_CONV",1.0E-6);
+	options.add_double("D_GS_CONV",1.0E-6);
+	options.add_double("D_EX_CONV",1.0E-4);
         options.add_double("DIIS_EPS", 0.1);
         options.add_int("DIIS_LEN", 6);
 	options.add_double("VSHIFT",0.0);

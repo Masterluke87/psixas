@@ -19,8 +19,8 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     psi4.core.print_out("\nEntering Excited State Kohn-Sham:\n"+33*"="+"\n\n")
   
     maxiter = int(psi4.core.get_local_option("PSIXAS","MAXITER"))
-    E_conv  = 1.0E-6
-    D_conv  = 1.0E-4
+    E_conv  = float(psi4.core.get_local_option("PSIXAS","E_EX_CONV"))
+    D_conv  = float(psi4.core.get_local_option("PSIXAS","D_EX_CONV"))
 
 
     """
@@ -163,7 +163,24 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     gamma    =  psi4.core.get_local_option("PSIXAS","DAMP")
     diis_eps =  psi4.core.get_local_option("PSIXAS","DIIS_EPS")
     vshift   =  psi4.core.get_local_option("PSIXAS","VSHIFT")
-    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:8.4f}\n{:>10} {:8.2E}\n{:>10} {:8.4f}\n{:>10} {:8d}\n{:>10} {:8d}\n\n".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"VSHIFT:",vshift,"MAXITER",maxiter,"DIIS_LEN",diis_len))
+    psi4.core.print_out("""
+Starting SCF:\n
+"""+13*"="+"""\n
+{:>10} {:8.2E}
+{:>10} {:8.2E}
+{:>10} {:8.4f}
+{:>10} {:8.2E}
+{:>10} {:8.4f}
+{:>10} {:8d}
+{:>10} {:8d}\n
+""".format(
+    "E_CONV:",E_conv,
+    "D_CONV:",D_conv,
+    "DAMP:",gamma,
+    "DIIS_EPS:",diis_eps,
+    "VSHIFT:",vshift,
+    "MAXITER:",maxiter,
+    "DIIS_LEN:",diis_len))
 
  
     psi4.core.print_out("\nInitial orbital occupation pattern:\n\n")
@@ -428,9 +445,25 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
 
     psi4.core.print_out("\nFinal orbital occupation pattern:\n\n")
-    psi4.core.print_out("Index|Spin|Occ|Ovl|Freeze\n"+25*"-")
+    psi4.core.print_out("Index|Spin|Occ|Ovl|Freeze|Comment\n"+34*"-")
     for i in orbitals:
-        psi4.core.print_out("\n{:^5}|{:^4}|{:^3}|{:^3}|{:^6}".format(i["orb"],i["spin"],i["occ"],'Yes' if i["DoOvl"] else 'No','Yes' if i["frz"] else 'No'))
+        Comment = "-"
+        if i["DoOvl"]:
+            psi4.core.print_out("\n{:^5}|{:^4}|{:^3}|{:^3}|{:^6}|{:^7}".format(i["orb"],i["spin"],i["occ"],'Yes' if i["DoOvl"] else 'No','Yes' if i["frz"] else 'No',Comment))
+        else:
+            if i["spin"]=="b":
+                #calculate the Overlapp with all other orbitals
+                ovl = np.abs(np.einsum('m,nj,mn->j',i["C"],Coccb,S))
+                idx = np.argmax(ovl)
+            elif  i["spin"]=="a":
+                ovl = np.abs(np.einsum('m,nj,mn->j',i["C"],Cocca,S))
+                idx = np.argmax(ovl)
+            Comment = " Found by overlap"
+            psi4.core.print_out("\n{:^5}|{:^4}|{:^3}|{:^3}|{:^6}|{:^7}".format(idx,i["spin"],i["occ"],'Yes' if i["DoOvl"] else 'No','Yes' if i["frz"] else 'No',Comment))
+
+
+
+
     psi4.core.print_out("\n\n")
 
 

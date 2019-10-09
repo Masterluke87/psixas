@@ -123,7 +123,7 @@ def DFTGroundState(mol,func,**kwargs):
     """
 
     # Initialize the JK object
-    jk = psi4.core.JK.build_JK(wfn.basisset(),aux)
+    jk = psi4.core.JK.build(wfn.basisset(),aux=aux,jk_type=psi4.core.get_option("SCF", "SCF_TYPE"))
     glob_mem = psi4.core.get_memory()/8
     jk.set_memory(int(glob_mem*0.6))
     jk.initialize()
@@ -143,7 +143,7 @@ def DFTGroundState(mol,func,**kwargs):
     diisa = DIIS_helper(max_vec=diis_len)
     diisb = DIIS_helper(max_vec=diis_len)
     
-    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:8.4f}\n{:>10} {:8.4f} \n{:>10} {:4d}\n{:>10} {:4d}".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"MAXITER:",maxiter,"DIIS_LEN:",diis_len))
+    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:8.4f}\n{:>10} {:8.2E} \n{:>10} {:8d}\n{:>10} {:8d}".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"MAXITER:",maxiter,"DIIS_LEN:",diis_len))
 
     myTimer = Timer()
 
@@ -251,7 +251,7 @@ def DFTGroundState(mol,func,**kwargs):
 
         DError = (np.sum((DaOld-Da)**2)**0.5 + np.sum((DbOld-Db)**2)**0.5)/2
         EError = (SCF_E - Eold)
-
+        DIISError = (np.sum(diisa_e**2)**0.5 + np.sum(diisb_e**2)**0.5)/2
         """
         OUTPUT
         """
@@ -260,14 +260,14 @@ def DFTGroundState(mol,func,**kwargs):
              SCF_E,
              EError,
              DError,
-             np.mean(diisa_e**2)**0.5,
+             DIISError,
              MIXMODE,
              myTimer.getTime("SCF"),
              len(diisa.vector),
              len(diisb.vector)))
                   
         psi4.core.flush_outfile()
-        if (abs(SCF_E - Eold) < diis_eps):
+        if (abs(DIISError) < diis_eps):
             MIXMODE = "DIIS"
         else:
             MIXMODE = "DAMP"        

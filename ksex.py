@@ -20,7 +20,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
   
     maxiter = int(psi4.core.get_local_option("PSIXAS","MAXITER"))
     E_conv  = 1.0E-6
-    D_conv  = 1.0E-6
+    D_conv  = 1.0E-4
 
 
     """
@@ -146,7 +146,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     Da     = Cocca.np @ Cocca.np.T
     Db     = Coccb.np @ Coccb.np.T
 
-    jk = psi4.core.JK.build(wfn.basisset(),aux,"MEM_DF")
+    jk = psi4.core.JK.build(wfn.basisset(),aux,jk_type=psi4.core.get_local_option("SCF","SCF_TYPE"))
     glob_mem = psi4.core.get_memory()/8
     jk.set_memory(int(glob_mem*0.6))
     jk.initialize()
@@ -163,7 +163,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     gamma    =  psi4.core.get_local_option("PSIXAS","DAMP")
     diis_eps =  psi4.core.get_local_option("PSIXAS","DIIS_EPS")
     vshift   =  psi4.core.get_local_option("PSIXAS","VSHIFT")
-    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:4.2f}\n{:>10} {:4.2f}\n{:>10} {:4.2f}\n{:>10} {:4d}\n{:>10} {:4d}\n\n".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"VSHIFT:",vshift,"MAXITER",maxiter,"DIIS_LEN",diis_len))
+    psi4.core.print_out("\nStarting SCF:\n"+13*"="+"\n\n{:>10} {:8.4f}\n{:>10} {:8.2E}\n{:>10} {:8.4f}\n{:>10} {:8d}\n{:>10} {:8d}\n\n".format("DAMP:",gamma,"DIIS_EPS:",diis_eps,"VSHIFT:",vshift,"MAXITER",maxiter,"DIIS_LEN",diis_len))
 
  
     psi4.core.print_out("\nInitial orbital occupation pattern:\n\n")
@@ -175,10 +175,10 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
 
 
-    psi4.core.print_out(("{:^3} {:^14} {:^14} {:^5} {:^5} | {:^"+str(len(orbitals)*5)+"}| {:^4} {:^5}\n").format("#IT", "Escf",
-         "dEscf","na","nb",
+    psi4.core.print_out(("{:^3} {:^14} {:^11} {:^11} {:^11} {:^5} {:^5} | {:^"+str(len(orbitals)*5)+"}| {:^4} {:^5}\n").format("#IT", "Escf",
+         "dEscf","Derror","DIIS-E","na","nb",
          "OVL","MIX","Time"))
-    psi4.core.print_out("="*80+"\n")
+    psi4.core.print_out("="*(87+5*len(orbitals))+"\n")
 
    
     myTimer = Timer()
@@ -311,6 +311,10 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
         Cb,epsb = diag_H(Fb, A)
         myTimer.addEnd("Diag")
 
+        DaOld = np.copy(Da)
+        DbOld = np.copy(Db)
+
+
         """
         New orbitals obtained set occupation numbers
         """
@@ -368,27 +372,34 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
         Db     = Coccb.np @ Coccb.np.T
 
         myTimer.addEnd("SetOcc")
-        
+
+        DError = (np.sum((DaOld-Da)**2)**0.5 + np.sum((DbOld-Db)**2)**0.5)/2
+        EError = (SCF_E - Eold)
+        DIISError = (np.sum(diisa_e**2)**0.5 + np.sum(diisb_e**2)**0.5)/2
         myTimer.addEnd("SCF")
-        psi4.core.print_out(("{:3d} {:14.8f} {:14.8f} {:5.1f} {:5.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^4} {:5.2f} \n").format(
+        psi4.core.print_out(("{:3d} {:14.8f} {:11.3E} {:11.3E} {:11.3E} {:5.1f} {:5.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^4} {:5.2f} {:2d} {:2d} \n").format(
             SCF_ITER,
             SCF_E,
-            (SCF_E - Eold),
+            EError,
+            DError,
+            DIISError,
             np.sum(Da*S),
             np.sum(Db*S),
             *[x["ovl"] for x in orbitals],
             MIXMODE,
-            myTimer.getTime("SCF") ))
+            myTimer.getTime("SCF"),
+            len(diisa.vector),
+            len(diisb.vector)))
         psi4.core.flush_outfile()
         myTimer.printAlltoFile("timers.ksex")
         
-        if (abs(SCF_E - Eold) < diis_eps):
+        if (abs(DIISError) < diis_eps):
             MIXMODE = "DIIS"
         else:
             MIXMODE = "DAMP"  
         
         
-        if (abs(SCF_E - Eold) < E_conv):
+        if (abs(EError) < E_conv) and (abs(DError)<D_conv):
             if (vshift != 0.0):
                 psi4.core.print_out("Converged but Vshift was on... removing Vshift..\n")
                 vshift = 0.0

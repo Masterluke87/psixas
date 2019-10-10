@@ -195,12 +195,9 @@ Starting SCF:
         """
         DIIS/MIXING
         """
-        diisa_e = Fa.dot(Da).dot(S) - S.dot(Da).dot(Fa)
-        diisa_e = (A.T).dot(diisa_e).dot(A)
+        diisa_e = Fa@Da@S - S@Da@Fa
         diisa.add(Fa, diisa_e)
-
-        diisb_e = Fb.dot(Db).dot(S) - S.dot(Db).dot(Fb)
-        diisb_e = (A.T).dot(diisb_e).dot(A)
+        diisb_e = Fb@Db@S - S@Db@Fb
         diisb.add(Fb, diisb_e)
 
         if (MIXMODE == "DIIS") and (SCF_ITER>1):

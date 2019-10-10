@@ -278,9 +278,11 @@ Starting SCF:\n
         myTimer.addStart("MIX")      
         
         diisa_e = Fa@Da@S - S@Da@Fa
+        diisa_e = A.T @  diisa_e @ A
         diisa.add(Fa, diisa_e)
 
         diisb_e = Fb@Db@S- S@Db@Fb
+        diisb_e = A.T @  diisb_e @ A
         diisb.add(Fb, diisb_e)
         adiis.add(Fa,Fb,Da,Db)
 

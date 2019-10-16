@@ -29,7 +29,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     prefix = psi4.core.get_local_option("PSIXAS","PREFIX")
 
     if (os.path.isfile(prefix+"_exorbs.npz")):
-        psi4.core.print_out("Restarting Calculation from: {} \n\n".format(prefix+"_exorbs.npz")) )
+        psi4.core.print_out("Restarting Calculation from: {} \n\n".format(prefix+"_exorbs.npz")) 
         Ca = np.load(prefix+"_exorbs.npz")["Ca"]
         Cb = np.load(prefix+"_exorbs.npz")["Cb"]
     else:

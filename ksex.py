@@ -6,7 +6,7 @@ Created on Sun Aug 19 18:30:31 2018
 
 Module to perform excited state calculations
 """
-from .kshelper import diag_H,DIIS_helper,Timer
+from .kshelper import diag_H,DIIS_helper,Timer,ADIIS_helper
 import numpy as np
 import os
 import psi4
@@ -29,7 +29,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     prefix = psi4.core.get_local_option("PSIXAS","PREFIX")
 
     if (os.path.isfile(prefix+"_exorbs.npz")):
-        psi4.core.print_out("Restarting Calculation\n")
+        psi4.core.print_out("Restarting Calculation from: {} \n\n".format(prefix+"_exorbs.npz")) )
         Ca = np.load(prefix+"_exorbs.npz")["Ca"]
         Cb = np.load(prefix+"_exorbs.npz")["Cb"]
     else:
@@ -160,6 +160,8 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     diisa = DIIS_helper(max_vec=diis_len)
     diisb = DIIS_helper(max_vec=diis_len)
 
+    adiis = ADIIS_helper(max_vec=diis_len)
+
     gamma    =  psi4.core.get_local_option("PSIXAS","DAMP")
     diis_eps =  psi4.core.get_local_option("PSIXAS","DIIS_EPS")
     vshift   =  psi4.core.get_local_option("PSIXAS","VSHIFT")
@@ -280,11 +282,20 @@ Starting SCF:\n
 
         diisb_e = Fb@Db@S- S@Db@Fb
         diisb.add(Fb, diisb_e)
+        adiis.add(Fa,Fb,Da,Db)
 
         if (MIXMODE == "DIIS") and (SCF_ITER>1):
-            # Extrapolate alpha & beta Fock matrices separately
-            Fa = diisa.extrapolate()
-            Fb = diisb.extrapolate()
+            if (DIISError < 1E-4):
+                Fa = diisa.extrapolate()
+                Fb = diisb.extrapolate()
+                print("DIIS")
+            else:
+                print("E/DIIS")
+                Fa_diis = diisa.extrapolate()
+                Fb_diis = diisb.extrapolate()  
+                Fa_adiis,Fb_adiis   = adiis.extrapolate()
+                Fa = 10*DIISError*Fa_adiis + (1-10*DIISError)*Fa_diis
+                Fb = 10*DIISError*Fb_adiis + (1-10*DIISError)*Fb_diis
         elif (MIXMODE == "DAMP") and (SCF_ITER>1):
             # Use Damping to obtain the new Fock matrices
             Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
@@ -428,6 +439,7 @@ Starting SCF:\n
 
         if SCF_ITER == maxiter:
             psi4.core.clean()
+            np.savez(prefix+'_exorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb,orbitals=orbitals)
             raise Exception("Maximum number of SCF cycles exceeded.")
 
     psi4.core.print_out("\n\n{:>20} {:12.8f} [Ha] \n".format("FINAL EX SCF ENERGY:",SCF_E))

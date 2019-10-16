@@ -6,7 +6,7 @@ Created on Sun Aug 19 01:57:59 2018
 """
 import psi4
 import numpy as np
-from .kshelper import diag_H,DIIS_helper,Timer
+from .kshelper import diag_H,ADIIS_helper,DIIS_helper,Timer,EDIIS_helper
 import os.path
 import time
 
@@ -51,6 +51,7 @@ def DFTGroundState(mol,func,**kwargs):
     A = mints.ao_overlap()
     A.power(-0.5,1.e-16)
     A = np.asarray(A)
+
 
     Enuc = mol.nuclear_repulsion_energy()
     Eold = 0.0
@@ -142,6 +143,11 @@ def DFTGroundState(mol,func,**kwargs):
     diis_len = psi4.core.get_local_option("PSIXAS","DIIS_LEN")
     diisa = DIIS_helper(max_vec=diis_len)
     diisb = DIIS_helper(max_vec=diis_len)
+    adiis = ADIIS_helper(max_vec=diis_len)
+    ediis = EDIIS_helper(max_vec=diis_len)
+
+    diisa_e = 1000.0
+    diisb_e = 1000.0
     
     psi4.core.print_out("""
 Starting SCF:
@@ -193,29 +199,6 @@ Starting SCF:
         """
 
         """
-        DIIS/MIXING
-        """
-        diisa_e = Fa@Da@S - S@Da@Fa
-        diisa.add(Fa, diisa_e)
-        diisb_e = Fb@Db@S - S@Db@Fb
-        diisb.add(Fb, diisb_e)
-
-        if (MIXMODE == "DIIS") and (SCF_ITER>1):
-            # Extrapolate alpha & beta Fock matrices separately
-            Fa = diisa.extrapolate()
-            Fb = diisb.extrapolate()
-        elif (MIXMODE == "DAMP") and (SCF_ITER>1):
-            #...but use damping to obtain the new Fock matrices
-            Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
-            Fb = (1-gamma) * np.copy(Fb) + (gamma) * FbOld
-
-        """
-        END DIIS/MIXING
-        """
-
-        
-
-        """
         CALC E
         """
         one_electron_E  = np.sum(Da * H)
@@ -240,10 +223,45 @@ Starting SCF:
         """
         END CALCE
         """
-        
 
         """
-        DIAG F + BUILD D
+        DIIS/MIXING
+        """
+        diisa_e = Fa@Da@S - S@Da@Fa
+        diisa.add(Fa, diisa_e)
+
+        diisb_e = Fb@Db@S - S@Db@Fb
+        diisb.add(Fb, diisb_e)
+        
+        adiis.add(Fa,Fb,Da,Db)
+
+
+        if (MIXMODE == "DIIS") and (SCF_ITER>1):
+            # Extrapolate alpha & beta Fock matrices separately
+            if (DIISError < 1E-4):
+                Fa = diisa.extrapolate()
+                Fb = diisb.extrapolate()
+                print("DIIS")
+            else:
+                print("E/DIIS")
+                Fa_diis = diisa.extrapolate()
+                Fb_diis = diisb.extrapolate()
+                Fa_adiis,Fb_adiis   = adiis.extrapolate()
+                Fa = 10*DIISError*Fa_adiis + (1-10*DIISError)*Fa_diis
+                Fb = 10*DIISError*Fb_adiis + (1-10*DIISError)*Fb_diis
+
+        elif (MIXMODE == "DAMP") and (SCF_ITER>1):
+            #...but use damping to obtain the new Fock matrices
+            Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
+            Fb = (1-gamma) * np.copy(Fb) + (gamma) * FbOld
+
+        """
+        END DIIS/MIXING
+        """
+       
+
+        """
+        DIAG F-tilde -> get D
         """
         DaOld = np.copy(Da)
         DbOld = np.copy(Db)
@@ -289,7 +307,12 @@ Starting SCF:
         Eold = SCF_E
 
         if SCF_ITER == maxiter:
-            clean()
+            psi4.core.clean()
+            occa = np.zeros(nbf,dtype=np.float)
+            occb = np.zeros(nbf,dtype=np.float)
+            occa[:nalpha] = 1.0
+            occb[:nbeta]  = 1.0
+            np.savez(prefix+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
             raise Exception("Maximum number of SCF cycles exceeded.")
 
     psi4.core.print_out("\n\nFINAL GS SCF ENERGY: {:12.8f} [Ha] \n\n".format(SCF_E))
@@ -298,11 +321,8 @@ Starting SCF:
     occa = np.zeros(nbf,dtype=np.float)
     occb = np.zeros(nbf,dtype=np.float)
 
-
     occa[:nalpha] = 1.0
     occb[:nbeta]  = 1.0
-
-
 
     OCCA = psi4.core.Vector(nbf)
     OCCB = psi4.core.Vector(nbf)
@@ -324,9 +344,9 @@ Starting SCF:
     mw = psi4.core.MoldenWriter(uhf)
     mw.write(prefix+'_gs.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
     psi4.core.print_out("Moldenfile written\n")
-
+    
     np.savez(prefix+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
-    psi4.core.print_out("Canoncical Orbitals written\n\n")
+    psi4.core.print_out("Canoncical Orbitals written\n\n")                        
 
     psi4.core.set_variable('CURRENT ENERGY', SCF_E)
     psi4.core.set_variable('GS ENERGY', SCF_E)

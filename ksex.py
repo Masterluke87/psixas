@@ -6,11 +6,12 @@ Created on Sun Aug 19 18:30:31 2018
 
 Module to perform excited state calculations
 """
-from .kshelper import diag_H,DIIS_helper,Timer,ADIIS_helper
+from .kshelper import diag_H,Timer, ACDIIS
 import numpy as np
 import os
 import psi4
 import time
+import logging
 
 def DFTExcitedState(mol,func,orbitals,**kwargs):
     """
@@ -157,16 +158,13 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     Db_m = psi4.core.Matrix(nbf,nbf)
     
     diis_len = psi4.core.get_local_option("PSIXAS","DIIS_LEN")
-    diisa = DIIS_helper(max_vec=diis_len)
-    diisb = DIIS_helper(max_vec=diis_len)
-
-    adiis = ADIIS_helper(max_vec=diis_len)
+    diis = ACDIIS(max_vec=diis_len)
 
     gamma    =  psi4.core.get_local_option("PSIXAS","DAMP")
     diis_eps =  psi4.core.get_local_option("PSIXAS","DIIS_EPS")
     vshift   =  psi4.core.get_local_option("PSIXAS","VSHIFT")
     psi4.core.print_out("""
-Starting SCF:\n
+Starting SCF:
 """+13*"="+"""\n
 {:>10} {:8.2E}
 {:>10} {:8.2E}
@@ -199,7 +197,7 @@ Starting SCF:\n
          "OVL","MIX","Time"))
     psi4.core.print_out("="*(87+5*len(orbitals))+"\n")
 
-   
+    diis_counter = 0
     myTimer = Timer()
     MIXMODE = "DAMP"
     for SCF_ITER in range(1, maxiter + 1):
@@ -279,25 +277,19 @@ Starting SCF:\n
         
         diisa_e = Fa@Da@S - S@Da@Fa
         diisa_e = A.T @  diisa_e @ A
-        diisa.add(Fa, diisa_e)
-
         diisb_e = Fb@Db@S- S@Db@Fb
         diisb_e = A.T @  diisb_e @ A
-        diisb.add(Fb, diisb_e)
-        adiis.add(Fa,Fb,Da,Db)
+        
+        diis.add(Fa,Fb,Da,Db,diisa_e+diisb_e)
 
         if (MIXMODE == "DIIS") and (SCF_ITER>1):
-            if (DIISError < 1E-4):
-                Fa = diisa.extrapolate()
-                Fb = diisb.extrapolate()
-                print("DIIS")
-            else:
-                print("E/DIIS")
-                Fa_diis = diisa.extrapolate()
-                Fb_diis = diisb.extrapolate()  
-                Fa_adiis,Fb_adiis   = adiis.extrapolate()
-                Fa = 10*DIISError*Fa_adiis + (1-10*DIISError)*Fa_diis
-                Fb = 10*DIISError*Fb_adiis + (1-10*DIISError)*Fb_diis
+            (Fa,Fb) = diis.extrapolate(DIISError)
+            diis_counter += 1
+            if (diis_counter >= 2*diis_len):
+                diis.reset()
+                diis_counter = 0
+                psi4.core.print_out("\nResetting DIIS\n")
+
         elif (MIXMODE == "DAMP") and (SCF_ITER>1):
             # Use Damping to obtain the new Fock matrices
             Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
@@ -398,14 +390,16 @@ Starting SCF:\n
         
         Da     = Cocca.np @ Cocca.np.T
         Db     = Coccb.np @ Coccb.np.T
-
         myTimer.addEnd("SetOcc")
+
+        logging.info("Alpha: {}eV".format((epsa[nalpha]-epsa[nalpha-1])*27.211386))
+        logging.info("Beta : {}eV".format((epsb[nbeta ]-epsb[nbeta-1])*27.211386))
 
         DError = (np.sum((DaOld-Da)**2)**0.5 + np.sum((DbOld-Db)**2)**0.5)/2
         EError = (SCF_E - Eold)
         DIISError = (np.sum(diisa_e**2)**0.5 + np.sum(diisb_e**2)**0.5)/2
         myTimer.addEnd("SCF")
-        psi4.core.print_out(("{:3d} {:14.8f} {:11.3E} {:11.3E} {:11.3E} {:5.1f} {:5.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^4} {:5.2f} {:2d} {:2d} \n").format(
+        psi4.core.print_out(("{:3d} {:14.8f} {:11.3E} {:11.3E} {:11.3E} {:5.1f} {:5.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^4} {:5.2f} {:2d}  \n").format(
             SCF_ITER,
             SCF_E,
             EError,
@@ -416,8 +410,7 @@ Starting SCF:\n
             *[x["ovl"] for x in orbitals],
             MIXMODE,
             myTimer.getTime("SCF"),
-            len(diisa.vector),
-            len(diisb.vector)))
+            len(diis.Fa)))
         psi4.core.flush_outfile()
         myTimer.printAlltoFile("timers.ksex")
         

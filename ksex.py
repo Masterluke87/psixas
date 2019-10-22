@@ -275,12 +275,9 @@ Starting SCF:
         """
         myTimer.addStart("MIX")      
         
-        diisa_e = Fa@Da@S - S@Da@Fa
-        diisa_e = A.T @  diisa_e @ A
-        diisb_e = Fb@Db@S- S@Db@Fb
-        diisb_e = A.T @  diisb_e @ A
-        
-        diis.add(Fa,Fb,Da,Db,diisa_e+diisb_e)
+        diisa_e = np.ravel(A.T@(Fa@Da@S - S@Da@Fa)@A)
+        diisb_e = np.ravel(A.T@(Fb@Db@S - S@Db@Fb)@A)
+        diis.add(Fa,Fb,Da,Db,np.concatenate((diisa_e,diisb_e)))
 
         if (MIXMODE == "DIIS") and (SCF_ITER>1):
             (Fa,Fb) = diis.extrapolate(DIISError)
@@ -288,7 +285,7 @@ Starting SCF:
             if (diis_counter >= 2*diis_len):
                 diis.reset()
                 diis_counter = 0
-                psi4.core.print_out("\nResetting DIIS\n")
+                psi4.core.print_out("Resetting DIIS\n")
 
         elif (MIXMODE == "DAMP") and (SCF_ITER>1):
             # Use Damping to obtain the new Fock matrices
@@ -395,9 +392,10 @@ Starting SCF:
         logging.info("Alpha: {}eV".format((epsa[nalpha]-epsa[nalpha-1])*27.211386))
         logging.info("Beta : {}eV".format((epsb[nbeta ]-epsb[nbeta-1])*27.211386))
 
-        DError = (np.sum((DaOld-Da)**2)**0.5 + np.sum((DbOld-Db)**2)**0.5)/2
+        DError = (np.sum((DaOld-Da)**2)**0.5 + np.sum((DbOld-Db)**2)**0.5)
         EError = (SCF_E - Eold)
-        DIISError = (np.sum(diisa_e**2)**0.5 + np.sum(diisb_e**2)**0.5)/2
+        DIISError = (np.sum(diisa_e**2)**0.5 + np.sum(diisb_e**2)**0.5)
+
         myTimer.addEnd("SCF")
         psi4.core.print_out(("{:3d} {:14.8f} {:11.3E} {:11.3E} {:11.3E} {:5.1f} {:5.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^4} {:5.2f} {:2d}  \n").format(
             SCF_ITER,

@@ -51,6 +51,7 @@ int read_options(std::string name, Options& options)
 	options.add_double("D_EX_CONV",1.0E-4);
         options.add_double("DIIS_EPS", 0.1);
         options.add_int("DIIS_LEN", 6);
+	options.add_str("DIIS_MODE","ADIIS+CDIIS");
 	options.add_double("VSHIFT",0.0);
 	options.add_int("MAXITER",100);
         options.add_array("ORBS");

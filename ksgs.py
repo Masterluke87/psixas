@@ -173,14 +173,6 @@ Starting SCF:
     psi4.core.print_out("\n\n{:^4} {:^14} {:^11} {:^11} {:^11} {:^4} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","DIIS-E","MIX","Time"))
     psi4.core.print_out("="*80+"\n")
     diis_counter = 0
-    dipole    = np.zeros(3)
-    dipoleOld = np.zeros(3)
-    dDipole   = np.zeros(3)
-    quad      = np.zeros(6)
-    quadOld   = np.zeros(6)
-    dQuad     = np.zeros(6)
-
-
 
     for SCF_ITER in range(1, maxiter + 1):
         myTimer.addStart("SCF")     
@@ -238,10 +230,9 @@ Starting SCF:
         """
         DIIS/MIXING
         """
-        diisa_e = A.T@(Fa@Da@S - S@Da@Fa)@A
-        diisb_e = A.T@(Fb@Db@S - S@Db@Fb)@A
-        
-        diis.add(Fa,Fb,Da,Db,diisa_e+diisb_e)
+        diisa_e = np.ravel(A.T@(Fa@Da@S - S@Da@Fa)@A)
+        diisb_e = np.ravel(A.T@(Fb@Db@S - S@Db@Fb)@A)
+        diis.add(Fa,Fb,Da,Db,np.concatenate((diisa_e,diisb_e)))
 
 
         if (MIXMODE == "DIIS") and (SCF_ITER>1):
@@ -252,7 +243,7 @@ Starting SCF:
             if (diis_counter >= 2*diis_len):
                 diis.reset()
                 diis_counter = 0
-                psi4.core.print_out("\nResetting DIIS\n")
+                psi4.core.print_out("Resetting DIIS\n")
 
         elif (MIXMODE == "DAMP") and (SCF_ITER>1):
             #...but use damping to obtain the new Fock matrices
@@ -282,27 +273,10 @@ Starting SCF:
         END DIAG F + BUILD D
         """
 
-        DError = (np.sum((DaOld-Da)**2)**0.5 + np.sum((DbOld-Db)**2)**0.5)/2
+        DError = (np.sum((DaOld-Da)**2)**0.5 + np.sum((DbOld-Db)**2)**0.5)
         EError = (SCF_E - Eold)
-        DIISError = (np.sum(diisa_e**2)**0.5 + np.sum(diisb_e**2)**0.5)/2
-
-        dipoleOld = dipole.copy()
-        quadOld = quad.copy()
-        dipole[0] = -np.einsum('mn,mn',Da+Db,Dip[0])
-        dipole[1] = -np.einsum('mn,mn',Da+Db,Dip[1])
-        dipole[2] = -np.einsum('mn,mn',Da+Db,Dip[2])
-
-        quad = np.einsum("nm,inm->i",Da+Db,Quad)
-
-        dDipole = dipoleOld-dipole
-        dQuad   = quadOld - quad 
-        logging.info("dDipole {:4.2f} {:4.2f} {:4.2f} ".format(dDipole[0],dDipole[1],dDipole[2]))
-        logging.info(("dQuad "+"{:4.2f} "*6).format(*[x for x in dQuad]))
-        logging.info("Alpha: {} eV".format((epsa[nalpha]-epsa[nalpha-1])*27.211386)) 
-        logging.info("Beta:  {} eV".format((epsb[nbeta]-epsb[nbeta-1])*27.211386)) 
-
-
-
+        DIISError = (np.sum(diisa_e**2)**0.5 + np.sum(diisb_e**2)**0.5)
+     
         """
         OUTPUT
         """

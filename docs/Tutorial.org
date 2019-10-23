@@ -43,12 +43,53 @@ The installation is complete, and PSIXAS is ready to run!
 
 * Example 1: XPS calculation
 ** 3,3,3-Trifluoropropanol
-The central quantity one has to calculate to simulate an XPS spectra are the so-called core-electron binding energies (CEBE).
-These can be obtain via a \Delta-Kohn-Sham calculation. The CEBE is given as:
+For 3,3,3-Trifluoropropanol one would expect three distinct C1s signals in the XPS spectrum, each signal can be assigned 
+to one carbon atom in the molecule.
 
-\begin{equation}
-CEBE = E^i_{kat} - E_{neu} 
-\end{equation}
+The central quantity one has to calculate when simulating XPS spectra are the so-called core-electron binding energies (CEBEs).
+These can be obtain via a \Delta-Kohn-Sham calculation. The CEBE for an excitation center $i$ is given 
+as $\mathrm{CEBE} = E^i_{kat} - E_{neu}$, where $E_{neu}$ and $E_{kat}$ are the energies of the neutral 
+and core-ionized molecule, respectively.
+
+In this example, we are calculating the core electron binding energies with B3LYP/def2-TZVP. In order to get the energy of the 
+neutral molecule, we can use the folling input:
+#+BEGIN_SRC bash
+import psixas
+
+memory 16GB
+
+molecule{
+ C           -0.348376548098    -0.548474458915    -0.927836216945
+ C            0.598339605925     0.344412190721    -0.154926820251
+ C           -1.260377523962    -1.428990131337    -0.073815750620
+ H           -0.931459004013     0.095187059173    -1.591052058736
+ H            0.270520314607    -1.188949646350    -1.560246367799
+ F           -0.030731307342     1.342027128065     0.491810630465
+ F            1.492395966346     0.923480284909    -0.991220902737
+ F            1.309169804186    -0.344637834439     0.762302565414
+ H           -1.792305519830    -2.113716429507    -0.745127437896
+ O           -2.163746992897    -0.714605675932     0.750272586920
+ H           -0.660551886505    -2.035740348426     0.604285075819
+ H           -2.747844602396    -0.181104236356     0.200201028032
+symmetry c1
+}
+
+set {
+  basis def2-TZVP
+}
+
+set psixas {
+  prefix TRIFLUOR
+  MODE GS
+ }
+
+set scf {
+ reference uks
+ scf_type MEM_DF
+}
+
+energy('psixas',functional='B3LYP')
+#+END_SRC
 
 * Example 2: NEXAFS calculation
 

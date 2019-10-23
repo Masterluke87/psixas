@@ -4,7 +4,7 @@
 The most convinient way to get psixas to run is to use a PSI4 via 
 conda or miniconda. Let's assume you created a new environment:
 
-+BEGIN_SRC bash
+#+BEGIN_SRC bash
 conda create -n p4env psi4 -c psi4
 conda activate p4env
 #+END_SRC

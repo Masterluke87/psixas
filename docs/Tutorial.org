@@ -1,11 +1,21 @@
+#+LATEX_HEADER: \usepackage[margin=1.5cm]{geometry}
+
+* Introduction
+This tutorial serves as a practical introduction to PSIXAS and its ability to simulate 
+X-ray absorption processes like X-ray photoelectron spectroscopy (XPS), 
+near edge X-ray absorption fine structure (NEXAFS) and the pump-probe NEXAFS spectroscopies.
+
+The theoretical foundation used by PSIXAS are the 
+transition-potential and \Delta-Kohn-Sham method. Other, wavefunction based methods 
+are planned for future implementations.
+
 
 * Installation 
-
-The most convinient way to get PSIXAS to run is to use PSI4 via 
+The most convenient way to get PSIXAS to run is to use PSI4 via 
 conda or miniconda. Let's assume you created a new environment:
 
 #+BEGIN_SRC bash
-conda create -n p4env psi4 -c psi4
+conda create -n p4env psi4 psi4-dev -c psi4
 conda activate p4env
 #+END_SRC
 which will install the most recent stable PSI4.
@@ -29,8 +39,24 @@ After the plugin one needs to export the path that contains the plugin:
 #+BEGIN_SRC bash
 export PYTHONPATH=/path/to/psi4Plugins
 #+END_SRC
+The installation is complete, and PSIXAS is ready to run!
 
-Then the installation is complete, and PSIXAS is ready to run!
+* Example 1: XPS calculation
+** 3,3,3-Trifluoropropanol
+The central quantity one has to calculate to simulate an XPS spectra are the so-called core-electron binding energies (CEBE).
+These can be obtain via a \Delta-Kohn-Sham calculation. The CEBE is given as:
+
+\begin{equation}
+CEBE = E^i_{kat} - E_{neu} 
+\end{equation}
+
+* Example 2: NEXAFS calculation
+
+
+* Example 3: PP-NEXAFS calculation
+
+
+
 
 
 

@@ -18,15 +18,20 @@ def DFTGroundState(mol,func,**kwargs):
     """
     psi4.core.print_out("\n\nEntering Ground State Kohn-Sham:\n"+32*"="+"\n\n")
 
-    maxiter = int(psi4.core.get_local_option("PSIXAS","MAXITER"))
-    E_conv  = float(psi4.core.get_local_option("PSIXAS","E_GS_CONV"))
-    D_conv  = float(psi4.core.get_local_option("PSIXAS","D_GS_CONV"))
+    options = {
+        "PREFIX"    : psi4.core.get_local_option("PSIXAS","PREFIX"),
+        "E_CONV"    : float(psi4.core.get_local_option("PSIXAS","E_GS_CONV")),
+        "D_CONV"    : float(psi4.core.get_local_option("PSIXAS","D_GS_CONV")),
+        "MAXITER"   : int(psi4.core.get_local_option("PSIXAS","MAXITER")),
+        "BASIS"     : psi4.core.get_global_option('BASIS'),
+        "GAMMA"     : float(psi4.core.get_local_option("PSIXAS","DAMP")),
+        "DIIS_LEN"  : int(psi4.core.get_local_option("PSIXAS","DIIS_LEN")),
+        "DIIS_MODE" : psi4.core.get_local_option("PSIXAS","DIIS_MODE"),
+        "DIIS_EPS"  : float(psi4.core.get_local_option("PSIXAS","DIIS_EPS")),
+        "MIXMODE"   : "DAMP"}
 
-    prefix = kwargs["PREFIX"]
-
-    basis = psi4.core.get_global_option('BASIS')
-    wfn   = psi4.core.Wavefunction.build(mol,basis)
-    aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", basis)
+    wfn   = psi4.core.Wavefunction.build(mol,options["BASIS"])
+    aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", options["BASIS"])
 
     sup = psi4.driver.dft.build_superfunctional(func, False)[0]
     psi4.core.be_quiet()
@@ -42,9 +47,6 @@ def DFTGroundState(mol,func,**kwargs):
     T = np.asarray(mints.ao_kinetic())
     V = np.asarray(mints.ao_potential())
     H = np.zeros((mints.nbf(),mints.nbf()))
-    Dip  = np.array([np.asarray(x) for x in mints.ao_dipole()])
-    Quad = np.array([np.asarray(x) for x in mints.ao_quadrupole()])
-
 
     H = T+V
 
@@ -70,17 +72,15 @@ def DFTGroundState(mol,func,**kwargs):
     Vpot = psi4.core.VBase.build(wfn.basisset(), sup, "UV")
     Vpot.initialize()
 
-    gamma    =  float(psi4.core.get_local_option("PSIXAS","DAMP"))
-    diis_eps =  float(psi4.core.get_local_option("PSIXAS","DIIS_EPS"))
     """
     Read or Core Guess
     """    
     Cocca       = psi4.core.Matrix(nbf, nalpha)
     Coccb       = psi4.core.Matrix(nbf, nbeta)
-    if (os.path.isfile(prefix+"_gsorbs.npz")):
+    if (os.path.isfile(options["PREFIX"]+"_gsorbs.npz")):
         psi4.core.print_out("Restarting Calculation")
-        Ca = np.load(prefix+"_gsorbs.npz")["Ca"]
-        Cb = np.load(prefix+"_gsorbs.npz")["Cb"]
+        Ca = np.load(options["PREFIX"]+"_gsorbs.npz")["Ca"]
+        Cb = np.load(options["PREFIX"]+"_gsorbs.npz")["Cb"]
         Cocca.np[:]  = Ca[:, :nalpha]
         Da     = Ca[:, :nalpha] @ Ca[:, :nalpha].T
         Coccb.np[:]  = Cb[:, :nbeta]
@@ -91,7 +91,7 @@ def DFTGroundState(mol,func,**kwargs):
         """
         psi4.core.print_out("Creating SADNO guess\n\n")
         sad_basis_list = psi4.core.BasisSet.build(mol, "ORBITAL",
-                basis,puream=True,return_atomlist=True)
+                options["BASIS"],puream=True,return_atomlist=True)
         sad_fitting_list = psi4.core.BasisSet.build(mol,"DF_BASIS_SAD",
                 psi4.core.get_option("SCF", "DF_BASIS_SAD"),puream=True, return_atomlist=True)
         SAD = psi4.core.SADGuess.build_SAD(wfn.basisset(), sad_basis_list)
@@ -144,10 +144,7 @@ def DFTGroundState(mol,func,**kwargs):
     psi4.core.print_out("\n\n")
     jk.print_header()
         
-    diis_len = psi4.core.get_local_option("PSIXAS","DIIS_LEN")
-
-    diis = ACDIIS(max_vec=diis_len)
-
+    diis = ACDIIS(max_vec=options["DIIS_LEN"],diismode=options["DIIS_MODE"])
     diisa_e = 1000.0
     diisb_e = 1000.0
     
@@ -159,22 +156,23 @@ Starting SCF:
 {:>10} {:8.4f}
 {:>10} {:8.2E}
 {:>10} {:8d}
-{:>10} {:8d}""".format(
-    "E_CONV:",E_conv,
-    "D_CONV:",D_conv,
-    "DAMP:",gamma,
-    "DIIS_EPS:",diis_eps,
-    "MAXITER:",maxiter,
-    "DIIS_LEN:",diis_len))
+{:>10} {:8d}
+{:>10} {:^11}""".format(
+    "E_CONV:",options["E_CONV"],
+    "D_CONV:",options["D_CONV"],
+    "DAMP:",options["GAMMA"],
+    "DIIS_EPS:",options["DIIS_EPS"],
+    "MAXITER:", options["MAXITER"],
+    "DIIS_LEN:",options["DIIS_LEN"],
+    "DIIS_MODE:",options["DIIS_MODE"]))
 
     myTimer = Timer()
 
-    MIXMODE = "DAMP"
-    psi4.core.print_out("\n\n{:^4} {:^14} {:^11} {:^11} {:^11} {:^4} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","DIIS-E","MIX","Time"))
+    psi4.core.print_out("\n\n{:^4} {:^14} {:^11} {:^11} {:^11} {:^11} {:^6} \n".format("# IT", "Escf", "dEscf","Derror","DIIS-E","MIX","Time"))
     psi4.core.print_out("="*80+"\n")
     diis_counter = 0
 
-    for SCF_ITER in range(1, maxiter + 1):
+    for SCF_ITER in range(1, options["MAXITER"] + 1):
         myTimer.addStart("SCF")     
         jk.compute()
         
@@ -235,20 +233,20 @@ Starting SCF:
         diis.add(Fa,Fb,Da,Db,np.concatenate((diisa_e,diisb_e)))
 
 
-        if (MIXMODE == "DIIS") and (SCF_ITER>1):
+        if ("DIIS" in options["MIXMODE"]) and (SCF_ITER>1):
             # Extrapolate alpha & beta Fock matrices separately
             (Fa,Fb) = diis.extrapolate(DIISError)
             diis_counter += 1
 
-            if (diis_counter >= 2*diis_len):
+            if (diis_counter >= 2*options["DIIS_LEN"]):
                 diis.reset()
                 diis_counter = 0
                 psi4.core.print_out("Resetting DIIS\n")
 
-        elif (MIXMODE == "DAMP") and (SCF_ITER>1):
+        elif (options["MIXMODE"] == "DAMP") and (SCF_ITER>1):
             #...but use damping to obtain the new Fock matrices
-            Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
-            Fb = (1-gamma) * np.copy(Fb) + (gamma) * FbOld
+            Fa = (1-options["GAMMA"]) * np.copy(Fa) + (options["GAMMA"]) * FaOld
+            Fb = (1-options["GAMMA"]) * np.copy(Fb) + (options["GAMMA"]) * FbOld
 
         """
         END DIIS/MIXING
@@ -281,33 +279,33 @@ Starting SCF:
         OUTPUT
         """
         myTimer.addEnd("SCF")
-        psi4.core.print_out(" {:3d} {:14.8f} {:11.3E} {:11.3E} {:11.3E} {:^4} {:6.2f} {:2d} \n".format(SCF_ITER,
+        psi4.core.print_out(" {:3d} {:14.8f} {:11.3E} {:11.3E} {:11.3E} {:^11} {:6.2f} {:2d} \n".format(SCF_ITER,
              SCF_E,
              EError,
              DError,
              DIISError,
-             MIXMODE,
+             options["MIXMODE"],
              myTimer.getTime("SCF"),
              len(diis.Fa)))
                   
         psi4.core.flush_outfile()
-        if (abs(DIISError) < diis_eps):
-            MIXMODE = "DIIS"
+        if (abs(DIISError) < options["DIIS_EPS"]):
+            options["MIXMODE"] = options["DIIS_MODE"]
         else:
-            MIXMODE = "DAMP"        
+            options["MIXMODE"] = "DAMP"        
         
-        if (abs(EError) < E_conv) and (abs(DError)<D_conv):
+        if (abs(EError) < options["E_CONV"]) and (abs(DError)<options["D_CONV"]):
             break
 
         Eold = SCF_E
 
-        if SCF_ITER == maxiter:
+        if SCF_ITER == options["MAXITER"]:
             psi4.core.clean()
             occa = np.zeros(nbf,dtype=np.float)
             occb = np.zeros(nbf,dtype=np.float)
             occa[:nalpha] = 1.0
             occb[:nbeta]  = 1.0
-            np.savez(prefix+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
+            np.savez(options["PREFIX"]+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
             raise Exception("Maximum number of SCF cycles exceeded.")
 
     psi4.core.print_out("\n\nFINAL GS SCF ENERGY: {:12.8f} [Ha] \n\n".format(SCF_E))
@@ -337,14 +335,12 @@ Starting SCF:
     OCCB.print_out()
 
     mw = psi4.core.MoldenWriter(uhf)
-    mw.write(prefix+'_gs.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
+    mw.write(options["PREFIX"]+'_gs.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
     psi4.core.print_out("Moldenfile written\n")
     
-    np.savez(prefix+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
+    np.savez(options["PREFIX"]+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
     psi4.core.print_out("Canoncical Orbitals written\n\n")                        
 
     psi4.core.set_variable('CURRENT ENERGY', SCF_E)
     psi4.core.set_variable('GS ENERGY', SCF_E)
-
-
     return uhf

@@ -52,7 +52,7 @@ as CEBE = E^{i}_{kat} - E_{neu}, where E_{neu} and E_{kat} are the energies of t
 and core-ionized molecule, respectively.
 
 In this example, we are calculating the core electron binding energies with B3LYP/def2-TZVP. In order to get the energy of the 
-neutral molecule, we can use the folling input:
+neutral molecule, we can use the following input:
 #+BEGIN_SRC bash
 import psixas
 
@@ -89,6 +89,74 @@ set scf {
 }
 energy('psixas',functional='B3LYP')
 #+END_SRC
+
+By the end of the calculation, a Molden file is written, which can be used to identify the carbon 1s orbitals. In this case 
+the carbon 1s orbitals have the indices 4,5 and 6 (if one starts counting at 0). To calculate the energies of the core ionized states,
+one can start a calculation in a separate directory (the TRIFLUOR_gsorbs.npz can be copied). The following input can be used:
+
+#+BEGIN_SRC bash
+import psixas
+
+memory 16GB
+
+molecule{
+ C           -0.348376548098    -0.548474458915    -0.927836216945
+ C            0.598339605925     0.344412190721    -0.154926820251
+ C           -1.260377523962    -1.428990131337    -0.073815750620
+ H           -0.931459004013     0.095187059173    -1.591052058736
+ H            0.270520314607    -1.188949646350    -1.560246367799
+ F           -0.030731307342     1.342027128065     0.491810630465
+ F            1.492395966346     0.923480284909    -0.991220902737
+ F            1.309169804186    -0.344637834439     0.762302565414
+ H           -1.792305519830    -2.113716429507    -0.745127437896
+ O           -2.163746992897    -0.714605675932     0.750272586920
+ H           -0.660551886505    -2.035740348426     0.604285075819
+ H           -2.747844602396    -0.181104236356     0.200201028032
+symmetry c1
+}
+
+
+set {
+  basis def2-TZVP
+}
+
+
+set psixas {     
+  prefix TRIFLUOR
+  MODE GS+EX
+  ORBS   [4]
+  OCCS   [0.0]
+  SPIN   [b]
+  FREEZE [T]
+  OVL    [T] 
+ }
+
+
+set scf {
+ reference uks
+ scf_type MEM_DF
+}
+energy('psixas',functional='B3LYP')
+#+END_SRC
+The =MODE= is set to GS+EX. This will request a ground state Kohn-Sham (neutral) as well as an excited state 
+Kohn-Sham calculation (in this case a cation). The =ORBS= keyword sets the index of the orbital, whos occupation number we want to modify.
+=OCCS= and =SPIN= set the new occupation number and the spin of the orbital. =FREEZE= and =OVERLAP= indicate that the core orbital is
+frozen during the SCF and that the algorithm tries to find it by an overlap criterion. The following lines of the output are important:
+#+BEGIN_SRC bash
+FINAL EX SCF ENERGY: -481.33260783 [Ha] 
+  EXCITATION ENERGY:  10.97109328 [Ha] 
+  EXCITATION ENERGY: 298.53864318 [eV] 
+#+END_SRC
+where the last line gives us the core electron binding energy. The other CEBEs can be calculated in a similar fashion, 
+only the =OCCS= keyword needs to be modified (to 5 and 6).
+
+| Carbon   | CEBE [eV] |
+|----------+-----------|
+| CF_{3}   |     298.5 |
+| CH_{2}OH |     293.2 |
+| CH_{2}   |     292.2 |
+|----------+-----------|
+
 
 
 * Example 2: NEXAFS calculation

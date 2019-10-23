@@ -6,43 +6,46 @@ Created on Sun Aug 19 18:30:31 2018
 
 Module to perform excited state calculations
 """
-from .kshelper import diag_H,DIIS_helper,Timer
+from .kshelper import diag_H,Timer, ACDIIS
 import numpy as np
 import os
 import psi4
 import time
+import logging
 
 def DFTExcitedState(mol,func,orbitals,**kwargs):
     """
     Perform unrestrictred Kohn-Sham excited state calculation
     """
     psi4.core.print_out("\nEntering Excited State Kohn-Sham:\n"+33*"="+"\n\n")
-  
-    maxiter = int(psi4.core.get_local_option("PSIXAS","MAXITER"))
-    E_conv  = float(psi4.core.get_local_option("PSIXAS","E_EX_CONV"))
-    D_conv  = float(psi4.core.get_local_option("PSIXAS","D_EX_CONV"))
 
+    options = {
+        "PREFIX"    : psi4.core.get_local_option("PSIXAS","PREFIX"),
+        "E_CONV"    : float(psi4.core.get_local_option("PSIXAS","E_EX_CONV")),
+        "D_CONV"    : float(psi4.core.get_local_option("PSIXAS","D_EX_CONV")),
+        "MAXITER"   : int(psi4.core.get_local_option("PSIXAS","MAXITER")), 
+        "BASIS"     : psi4.core.get_global_option('BASIS'),
+        "GAMMA"     : float(psi4.core.get_local_option("PSIXAS","DAMP")),
+        "VSHIFT"    : float(psi4.core.get_local_option("PSIXAS","VSHIFT")),
+        "DIIS_LEN"  : int(psi4.core.get_local_option("PSIXAS","DIIS_LEN")),
+        "DIIS_MODE" : psi4.core.get_local_option("PSIXAS","DIIS_MODE"),
+        "DIIS_EPS"  : float(psi4.core.get_local_option("PSIXAS","DIIS_EPS")),
+        "MIXMODE"   : "DAMP"}
 
     """
     STEP 1: Read in ground state orbitals or restart from previous
     """
-    prefix = psi4.core.get_local_option("PSIXAS","PREFIX")
-
-    if (os.path.isfile(prefix+"_exorbs.npz")):
-        psi4.core.print_out("Restarting Calculation\n")
-        Ca = np.load(prefix+"_exorbs.npz")["Ca"]
-        Cb = np.load(prefix+"_exorbs.npz")["Cb"]
+    if (os.path.isfile(options["PREFIX"]+"_exorbs.npz")):
+        psi4.core.print_out("Restarting Calculation from: {} \n\n".format(options["PREFIX"]+"_exorbs.npz")) 
+        Ca = np.load(options["PREFIX"]+"_exorbs.npz")["Ca"]
+        Cb = np.load(options["PREFIX"]+"_exorbs.npz")["Cb"]
     else:
-        Ca = np.load(prefix+"_gsorbs.npz")["Ca"]
-        Cb = np.load(prefix+"_gsorbs.npz")["Cb"]
-
-    
-
+        Ca = np.load(options["PREFIX"]+"_gsorbs.npz")["Ca"]
+        Cb = np.load(options["PREFIX"]+"_gsorbs.npz")["Cb"]
 
     """
     Grep the coefficients for later overlap
     """
-
     for i in orbitals:
         if i["spin"]=="b":
             i["C"] = Cb[:,i["orb"]]
@@ -52,7 +55,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
             raise Exception("Orbital has non a/b spin!")
 
 
-    wfn   = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))
+    wfn   = psi4.core.Wavefunction.build(mol,options["BASIS"])
     aux     = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", psi4.core.get_global_option('BASIS'))
 
     psi4.core.be_quiet()
@@ -156,15 +159,10 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     Da_m = psi4.core.Matrix(nbf,nbf)
     Db_m = psi4.core.Matrix(nbf,nbf)
     
-    diis_len = psi4.core.get_local_option("PSIXAS","DIIS_LEN")
-    diisa = DIIS_helper(max_vec=diis_len)
-    diisb = DIIS_helper(max_vec=diis_len)
+    diis = ACDIIS(max_vec=options["DIIS_LEN"])
 
-    gamma    =  psi4.core.get_local_option("PSIXAS","DAMP")
-    diis_eps =  psi4.core.get_local_option("PSIXAS","DIIS_EPS")
-    vshift   =  psi4.core.get_local_option("PSIXAS","VSHIFT")
     psi4.core.print_out("""
-Starting SCF:\n
+Starting SCF:
 """+13*"="+"""\n
 {:>10} {:8.2E}
 {:>10} {:8.2E}
@@ -174,13 +172,14 @@ Starting SCF:\n
 {:>10} {:8d}
 {:>10} {:8d}\n
 """.format(
-    "E_CONV:",E_conv,
-    "D_CONV:",D_conv,
-    "DAMP:",gamma,
-    "DIIS_EPS:",diis_eps,
-    "VSHIFT:",vshift,
-    "MAXITER:",maxiter,
-    "DIIS_LEN:",diis_len))
+    "E_CONV:",options["E_CONV"],
+    "D_CONV:",options["D_CONV"],
+    "DAMP:",options["GAMMA"],
+    "DIIS_EPS:",options["DIIS_EPS"],
+    "VSHIFT:",options["VSHIFT"],
+    "MAXITER:",options["MAXITER"],
+    "DIIS_LEN:",options["DIIS_LEN"],
+    "DIIS_MODE:",options["DIIS_MODE"]))
 
  
     psi4.core.print_out("\nInitial orbital occupation pattern:\n\n")
@@ -189,18 +188,14 @@ Starting SCF:\n
         psi4.core.print_out("\n{:^5}|{:^4}|{:^3}|{:^3}|{:^6}".format(i["orb"],i["spin"],i["occ"],'Yes' if i["DoOvl"] else 'No','Yes' if i["frz"] else 'No'))
     psi4.core.print_out("\n\n")
 
-
-
-
-    psi4.core.print_out(("{:^3} {:^14} {:^11} {:^11} {:^11} {:^5} {:^5} | {:^"+str(len(orbitals)*5)+"}| {:^4} {:^5}\n").format("#IT", "Escf",
+    psi4.core.print_out(("{:^3} {:^14} {:^11} {:^11} {:^11} {:^5} {:^5} | {:^"+str(len(orbitals)*5)+"}| {:^11} {:^5}\n").format("#IT", "Escf",
          "dEscf","Derror","DIIS-E","na","nb",
          "OVL","MIX","Time"))
     psi4.core.print_out("="*(87+5*len(orbitals))+"\n")
 
-   
+    diis_counter = 0
     myTimer = Timer()
-    MIXMODE = "DAMP"
-    for SCF_ITER in range(1, maxiter + 1):
+    for SCF_ITER in range(1, options["MAXITER"] + 1):
         myTimer.addStart("SCF")
 
         myTimer.addStart("JK")
@@ -258,9 +253,9 @@ Starting SCF:\n
         VSHIFT 
         """        
         idxs = [c for c,x in enumerate(occa) if (x ==0.0) and (c>=nalpha)]
-        FMOa[idxs,idxs] += vshift
+        FMOa[idxs,idxs] += options["VSHIFT"]
         idxs = [c for c,x in enumerate(occb) if (x ==0.0) and (c>=nbeta)]
-        FMOb[idxs,idxs] += vshift
+        FMOb[idxs,idxs] += options["VSHIFT"]
 
         Fa = CaInv.T @ FMOa @ CaInv
         Fb = CbInv.T @ FMOb @ CbInv
@@ -275,22 +270,22 @@ Starting SCF:\n
         """
         myTimer.addStart("MIX")      
         
-        diisa_e = Fa@Da@S - S@Da@Fa
-        diisa_e = A.T @  diisa_e @ A
-        diisa.add(Fa, diisa_e)
+        diisa_e = np.ravel(A.T@(Fa@Da@S - S@Da@Fa)@A)
+        diisb_e = np.ravel(A.T@(Fb@Db@S - S@Db@Fb)@A)
+        diis.add(Fa,Fb,Da,Db,np.concatenate((diisa_e,diisb_e)))
 
-        diisb_e = Fb@Db@S- S@Db@Fb
-        diisb_e = A.T @  diisb_e @ A
-        diisb.add(Fb, diisb_e)
+        if ("DIIS" in options["MIXMODE"]) and (SCF_ITER>1):
+            (Fa,Fb) = diis.extrapolate(DIISError)
+            diis_counter += 1
+            if (diis_counter >= 2*options["DIIS_LEN"]):
+                diis.reset()
+                diis_counter = 0
+                psi4.core.print_out("Resetting DIIS\n")
 
-        if (MIXMODE == "DIIS") and (SCF_ITER>1):
-            # Extrapolate alpha & beta Fock matrices separately
-            Fa = diisa.extrapolate()
-            Fb = diisb.extrapolate()
-        elif (MIXMODE == "DAMP") and (SCF_ITER>1):
+        elif (options["MIXMODE"] == "DAMP") and (SCF_ITER>1):
             # Use Damping to obtain the new Fock matrices
-            Fa = (1-gamma) * np.copy(Fa) + (gamma) * FaOld
-            Fb = (1-gamma) * np.copy(Fb) + (gamma) * FbOld
+            Fa = (1-options["GAMMA"]) * np.copy(Fa) + (options["GAMMA"]) * FaOld
+            Fb = (1-options["GAMMA"]) * np.copy(Fb) + (options["GAMMA"]) * FbOld
         
         myTimer.addEnd("MIX")    
         """
@@ -387,14 +382,14 @@ Starting SCF:\n
         
         Da     = Cocca.np @ Cocca.np.T
         Db     = Coccb.np @ Coccb.np.T
-
         myTimer.addEnd("SetOcc")
 
-        DError = (np.sum((DaOld-Da)**2)**0.5 + np.sum((DbOld-Db)**2)**0.5)/2
+        DError = (np.sum((DaOld-Da)**2)**0.5 + np.sum((DbOld-Db)**2)**0.5)
         EError = (SCF_E - Eold)
-        DIISError = (np.sum(diisa_e**2)**0.5 + np.sum(diisb_e**2)**0.5)/2
+        DIISError = (np.sum(diisa_e**2)**0.5 + np.sum(diisb_e**2)**0.5)
+
         myTimer.addEnd("SCF")
-        psi4.core.print_out(("{:3d} {:14.8f} {:11.3E} {:11.3E} {:11.3E} {:5.1f} {:5.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^4} {:5.2f} {:2d} {:2d} \n").format(
+        psi4.core.print_out(("{:3d} {:14.8f} {:11.3E} {:11.3E} {:11.3E} {:5.1f} {:5.1f} | "+"{:4.2f} "*len(orbitals)+"| {:^11} {:5.2f} {:2d}  \n").format(
             SCF_ITER,
             SCF_E,
             EError,
@@ -403,23 +398,22 @@ Starting SCF:\n
             np.sum(Da*S),
             np.sum(Db*S),
             *[x["ovl"] for x in orbitals],
-            MIXMODE,
+            options["MIXMODE"],
             myTimer.getTime("SCF"),
-            len(diisa.vector),
-            len(diisb.vector)))
+            len(diis.Fa)))
         psi4.core.flush_outfile()
         myTimer.printAlltoFile("timers.ksex")
         
-        if (abs(DIISError) < diis_eps):
-            MIXMODE = "DIIS"
+        if (abs(DIISError) < options["DIIS_EPS"]):
+            options["MIXMODE"] = options["DIIS_MODE"]
         else:
-            MIXMODE = "DAMP"  
+            options["MIXMODE"] = "DAMP"  
         
         
-        if (abs(EError) < E_conv) and (abs(DError)<D_conv):
-            if (vshift != 0.0):
+        if (abs(EError) < options["E_CONV"]) and (abs(DError)<options["D_CONV"]):
+            if (options["VSHIFT"] != 0.0):
                 psi4.core.print_out("Converged but Vshift was on... removing Vshift..\n")
-                vshift = 0.0
+                options["VSHIFT"] = 0.0
             else:
                 break
 
@@ -428,8 +422,9 @@ Starting SCF:\n
 
 
 
-        if SCF_ITER == maxiter:
+        if SCF_ITER == options["MAXITER"]:
             psi4.core.clean()
+            np.savez(options["PREFIX"]+'_exorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb,orbitals=orbitals)
             raise Exception("Maximum number of SCF cycles exceeded.")
 
     psi4.core.print_out("\n\n{:>20} {:12.8f} [Ha] \n".format("FINAL EX SCF ENERGY:",SCF_E))
@@ -487,8 +482,8 @@ Starting SCF:\n
     OCCB.print_out()
 
     mw = psi4.core.MoldenWriter(uhf)
-    mw.write(prefix+'_ex.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
+    mw.write(options["PREFIX"]+'_ex.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
     psi4.core.print_out("\n\n Moldenfile written\n")
-    np.savez(prefix+'_exorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb,orbitals=orbitals)
+    np.savez(options["PREFIX"]+'_exorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb,orbitals=orbitals)
 
     psi4.core.set_variable('CURRENT ENERGY', SCF_E)

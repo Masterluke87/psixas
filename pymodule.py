@@ -35,6 +35,11 @@ from psi4.driver.procrouting import proc_util
 from .ksgs import DFTGroundState
 from .ksex import DFTExcitedState
 from .spec import CalcSpec
+import logging
+
+logging.basicConfig(filename='additional.log',level=logging.INFO,filemode='w', format='%(name)s -%(levelname)s - %(message)s')
+
+
 
 
 def run_psixas(name, **kwargs):

@@ -47,8 +47,8 @@ For 3,3,3-Trifluoropropanol one would expect three distinct C1s signals in the X
 to one carbon atom in the molecule.
 
 The central quantity one has to calculate when simulating XPS spectra are the so-called core-electron binding energies (CEBEs).
-These can be obtain via a \Delta-Kohn-Sham calculation. The CEBE for an excitation center $i$ is given 
-as $\mathrm{CEBE} = E^i_{kat} - E_{neu}$, where $E_{neu}$ and $E_{kat}$ are the energies of the neutral 
+These can be obtain via a \Delta-Kohn-Sham calculation. The CEBE for an excitation center i is given 
+as CEBE = E^i_{kat} - E_{neu}, where E_{neu} and E_{kat} are the energies of the neutral 
 and core-ionized molecule, respectively.
 
 In this example, we are calculating the core electron binding energies with B3LYP/def2-TZVP. In order to get the energy of the 
@@ -87,9 +87,9 @@ set scf {
  reference uks
  scf_type MEM_DF
 }
-
 energy('psixas',functional='B3LYP')
 #+END_SRC
+
 
 * Example 2: NEXAFS calculation
 

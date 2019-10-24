@@ -43,6 +43,11 @@ The installation is complete, and PSIXAS is ready to run!
 
 * Example 1: XPS calculation
 ** 3,3,3-Trifluoropropanol
+
+#+CAPTION: 3,3,3-Trifluoropropanol
+#+attr_html: :width 100px
+[[./C3H5F3O.png]]
+
 For 3,3,3-Trifluoropropanol one would expect three distinct C1s signals in the XPS spectrum, each signal can be assigned 
 to one carbon atom in the molecule.
 
@@ -150,12 +155,12 @@ FINAL EX SCF ENERGY: -481.33260783 [Ha]
 where the last line gives us the core electron binding energy. The other CEBEs can be calculated in a similar fashion, 
 only the =OCCS= keyword needs to be modified (to 5 and 6).
 
-| Carbon     | CEBE [eV] |
-|------------+-----------|
-| *C*F_{3}   |     298.5 |
-| *C*H_{2}OH |     293.2 |
-| *C*H_{2}   |     292.2 |
-|------------+-----------|
+| Carbon   | CEBE [eV] |
+|----------+-----------|
+| CF_{3}   |     298.5 |
+| CH_{2}OH |     293.2 |
+| CH_{2}   |     292.2 |
+|----------+-----------|
 
 
 

@@ -44,9 +44,11 @@ The installation is complete, and PSIXAS is ready to run!
 * Example 1: XPS calculation
 ** 3,3,3-Trifluoropropanol
 
-#+CAPTION: 3,3,3-Trifluoropropanol
-#+attr_html: :width 100px
-[[./C3H5F3O.png]]
+#+BEGIN_EXPORT html
+<p align="center">
+  <img src="./C3H5F3O.png" align="center" width="150" title="PSIXAS">
+</p>
+#+END_EXPORT
 
 For 3,3,3-Trifluoropropanol one would expect three distinct C1s signals in the XPS spectrum, each signal can be assigned 
 to one carbon atom in the molecule.

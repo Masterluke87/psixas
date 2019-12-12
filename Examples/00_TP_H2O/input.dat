@@ -27,7 +27,7 @@ set psixas {
   ORBS [0 ]
   OCCS [0.5]
   SPIN [b  ]
-  DAMP 0.2
+  DAMP 0.8
   OVL  [T]
   FREEZE [T]
 }

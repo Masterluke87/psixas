@@ -56,6 +56,15 @@ def CalcSpec(mol,func):
         spec["Dy"] = My[orbI,orbF]
         spec["Dz"] = Mz[orbI,orbF]
 
+
+        psi4.core.print_out("\nTransition-Potential excitation energies and transition dipole moments\n")
+        psi4.core.print_out("\n{:>16} {:>3}->{:>3} {:>16} {:>16} {:>16} \n".format("Energy [eV]","i","f","<i|x|f>","<i|y|f>","<i|z|f>"))
+        psi4.core.print_out("="*(16*4+7*2+5)+"\n")
+
+        for e,f,x,y,z in zip(spec["En"],orbF,spec["Dx"],spec["Dy"],spec["Dz"]):
+            psi4.core.print_out("{:>16.8f} {:>3}->{:>3} {:>16.8f} {:>16.8f} {:>16.8f} \n".format(e*27.211386,str(orbI),str(f),x,y,z))
+
+
         with open(prefix+'_b.spectrum', 'wb') as handle:
             pickle.dump(spec, handle, protocol=pickle.HIGHEST_PROTOCOL)
         psi4.core.print_out(("\n{}"+"_b.spectrum written.. \n\n").format(prefix))

@@ -12,6 +12,10 @@ import os
 import psi4
 import time
 import logging
+import psi4.driver.qcdb as qcdb
+import itertools
+import copy
+import pickle
 
 def DFTExcitedState(mol,func,orbitals,**kwargs):
     """
@@ -447,7 +451,7 @@ Starting SCF:
             psi4.core.print_out("\n{:^5}|{:^4}|{:^3}|{:^3}|{:^6}|{:^7}".format(i["orb"],i["spin"],i["occ"],'Yes' if i["DoOvl"] else 'No','Yes' if i["frz"] else 'No',Comment))
         else:
             if i["spin"]=="b":
-                #calculate the Overlapp with all other orbitals
+                #calculate the Overlap with all other orbitals
                 ovl = np.abs(np.einsum('m,nj,mn->j',i["C"],Coccb,S))
                 idx = np.argmax(ovl)
             elif  i["spin"]=="a":
@@ -456,14 +460,393 @@ Starting SCF:
             Comment = " Found by overlap"
             psi4.core.print_out("\n{:^5}|{:^4}|{:^3}|{:^3}|{:^6}|{:^7}".format(idx,i["spin"],i["occ"],'Yes' if i["DoOvl"] else 'No','Yes' if i["frz"] else 'No',Comment))
 
+    
+    """
+    Question? Can we find the excitation center?
+    """
+    D = mints.ao_dipole()
+    Dx,Dy,Dz = np.asarray(D[0]),np.asarray(D[1]),np.asarray(D[2])
+    orbI = ([c for c,x in enumerate(occb) if x != 1.0][0])
+
+
+
+    print(orbI)
+    Contribs = [[x,0] for x in range(mol.natom())]
+
+    for i in range(mol.natom()):
+        for c,j in enumerate(Cb[:,orbI]):
+            if wfn.basisset().function_to_center(c)==i:
+                Contribs[i][1] += j**2
+
+    print(sorted(Contribs,key=lambda f: f[1])[-1])
+
+    exci = sorted(Contribs,key=lambda f: f[1])[-1][0]
+    print(exci)
+
+    B =[[0,(1.2380000000,1.0)],
+   [0,(0.8840000000,1.0)],
+   [0,(0.6320000000,1.0)],
+   [0,(0.4510000000,1.0)],
+   [0,(0.3220000000,1.0)],
+   [0,(0.2300000000,1.0)],
+   [0,(0.1640000000,1.0)],
+   [0,(0.1170000000,1.0)],
+   [0,(0.0839000000,1.0)],
+   [0,(0.0599000000,1.0)],
+   [0,(0.0428000000,1.0)],
+   [0,(0.0306000000,1.0)],
+   [0,(0.0218000000,1.0)],
+   [0,(0.0156000000,1.0)],
+   [0,(0.0111000000,1.0)],
+   [0,(0.0079000000,1.0)],
+   [0,(0.0057000000,1.0)],
+   [0,(0.0040000000,1.0)],
+   [0,(0.0029000000,1.0)],
+   [1,(1.2380000000,1.0)],
+   [1,(0.8840000000,1.0)],
+   [1,(0.6320000000,1.0)],
+   [1,(0.4510000000,1.0)],
+   [1,(0.3220000000,1.0)],
+   [1,(0.2300000000,1.0)],
+   [1,(0.1640000000,1.0)],
+   [1,(0.1170000000,1.0)],
+   [1,(0.0839000000,1.0)],
+   [1,(0.0599000000,1.0)],
+   [1,(0.0428000000,1.0)],
+   [1,(0.0306000000,1.0)],
+   [1,(0.0218000000,1.0)],
+   [1,(0.0156000000,1.0)],
+   [1,(0.0111000000,1.0)],
+   [1,(0.0079000000,1.0)],
+   [1,(0.0057000000,1.0)],
+   [1,(0.0040000000,1.0)],
+   [1,(0.0029000000,1.0)],
+   [2,(1.2380000000,1.0)],
+   [2,(0.8840000000,1.0)],
+   [2,(0.6320000000,1.0)],
+   [2,(0.4510000000,1.0)],
+   [2,(0.3220000000,1.0)],
+   [2,(0.2300000000,1.0)],
+   [2,(0.1640000000,1.0)],
+   [2,(0.1170000000,1.0)],
+   [2,(0.0839000000,1.0)],
+   [2,(0.0599000000,1.0)],
+   [2,(0.0428000000,1.0)],
+   [2,(0.0306000000,1.0)],
+   [2,(0.0218000000,1.0)],
+   [2,(0.0156000000,1.0)],
+   [2,(0.0111000000,1.0)],
+   [2,(0.0079000000,1.0)],
+   [2,(0.0057000000,1.0)],
+   [2,(0.0040000000,1.0)],
+   [2,(0.0029000000,1.0)]]
+
+
+
+    qcmol   = qcdb.Molecule.from_dict(mol.to_dict())
+    qcbasis,qcdict = qcdb.libmintsbasisset.BasisSet.pyconstruct(qcmol,'BASIS',"","ORBITAL",options["BASIS"],return_dict=True)
+
+
+    for c,i in enumerate(qcdict["shell_map"][exci]):
+        if isinstance(i,list):
+            if i[0]==1:
+                print("Where to insert: {}".format(c))
+                indx = c
+                break
+    
+    bfBefore = []
+    bfAfter = []
+    for i in qcdict["shell_map"][:exci+1]:
+        for j in i:
+            if isinstance(j,list):
+                bfBefore.append(j)
+     
+    for i in qcdict["shell_map"][exci+1:]:
+        for j in i:
+            if isinstance(j,list):
+                bfAfter.append(j)
+                
+
+    print(bfBefore)
+    print(bfAfter)
+
+    print("nbf-Oldbas: {}".format(wfn.basisset().nbf()))
+    print("nbf-NewBas: {}".format(qcbasis.nbf()))
+    print("nbf-Before: {}".format(sum([2*x[0]+1 for x in bfBefore])))
+    print("nbf-After : {}".format(sum([2*x[0]+1 for x in bfAfter])))
+
+    nbefore = sum([2*x[0]+1 for x in bfBefore]) #for puram basis sets
+    nafter  = sum([2*x[0]+1 for x in bfAfter])  #for puream basis sets
+
+
+
+    for i in B:
+        qcdict["shell_map"][exci].append(i)
+   
+    
+
+    print(mol.print_out()) 
+    aug_basis = psi4.core.BasisSet.construct_from_pydict(mol,qcdict,qcdict["puream"])
+    aug_basis.print_detail_out()
+    aug_mints = psi4.core.MintsHelper(aug_basis)
+
+
+    print("nbf-AugBas: {}".format(aug_basis.nbf()))
+
+    Saug = np.asarray(aug_mints.ao_overlap())
+    Taug = np.asarray(aug_mints.ao_kinetic())
+    Vaug = np.asarray(aug_mints.ao_potential())
+    Haug = np.zeros((aug_mints.nbf(),mints.nbf()))
+
+    e,v = np.linalg.eigh(Saug)
+    print("Smin:  {}".format(np.min(e)))
+    idx = np.where(e>1.0E-6)
+
+    e = np.diag(1/np.sqrt(e[idx]))
+    vtmp = v[:,idx[0]]
+    Aaug = vtmp@e
+    
+    Haug = Taug+Vaug
+    if aug_basis.has_ECP():
+        ECP = aug_mints.ao_ecp()
+        Haug += ECP                
+    
+    augNbf = Aaug.shape[1]
+
+    print("New basis size: {}".format(augNbf))   
+
+    augCaOcc = psi4.core.Matrix(aug_basis.nbf(),augNbf) 
+    augCbOcc = psi4.core.Matrix(aug_basis.nbf(),augNbf) 
+
+    #this formula just works with puram=True basis set
+    idx = list(range(nbefore)) + list(range(aug_basis.nbf()-nafter,aug_basis.nbf()))
+    for c,i in enumerate(occa):
+        if i>0.0:
+            print("idx: {} occ: {}".format(c,i))
+            augCaOcc.np[:,c][idx] = Ca[:,c]
+    
+    for c,i in enumerate(occb):
+        if i>0.0:
+            print("idx: {} occ: {}".format(c,i))
+            augCbOcc.np[:,c][idx] = Cb[:,c]
+    
+    for i in range(nbf):
+            augCaOcc.np[:,i] *= np.sqrt(occa[i])
+            augCbOcc.np[:,i] *= np.sqrt(occb[i])
+
+    augDa = augCaOcc.np @ augCaOcc.np.T
+    augDb = augCbOcc.np @ augCbOcc.np.T
+    augVa = psi4.core.Matrix(aug_basis.nbf(),aug_basis.nbf())
+    augVb = psi4.core.Matrix(aug_basis.nbf(),aug_basis.nbf())
+
+    augSup = psi4.driver.dft.build_superfunctional(func, False)[0]
+    augSup.set_deriv(2)
+    augSup.allocate()
+
+    augVpot = psi4.core.VBase.build(aug_basis, augSup, "UV")
+    augVpot.initialize()
+
+
+    psi4.core.set_global_option("SCF_TYPE","DIRECT") 
+    psi4.core.set_local_option("SCF","SCF_TYPE","DIRECT") 
+
+
+    augJk = psi4.core.JK.build(aug_basis)
+    augJk.print_header()
+    glob_mem = psi4.core.get_memory()/8
+    augJk.set_memory(int(glob_mem*0.6))
+    augJk.initialize()
+    augJk.C_left_add(augCaOcc)
+    augJk.C_left_add(augCbOcc)
+
+    Da_m = psi4.core.Matrix(aug_basis.nbf(),aug_basis.nbf())
+    Db_m = psi4.core.Matrix(aug_basis.nbf(),aug_basis.nbf())
+
+    Da_m.np[:] = augDa
+    Db_m.np[:] = augDb
+
+
+    augJk.compute()
+
+    augVpot.set_D([Da_m,Db_m])
+    augVpot.compute_V([augVa,augVb])
+
+    Ja = np.asarray(augJk.J()[0])
+    Jb = np.asarray(augJk.J()[1])
+    Ka = np.asarray(augJk.K()[0])
+    Kb = np.asarray(augJk.K()[1])
+
+    Fa = Haug + (Ja + Jb) - Vpot.functional().x_alpha()*Ka + augVa
+    Fb = Haug + (Ja + Jb) - Vpot.functional().x_alpha()*Kb + augVb
+
+
+    myTimer.addStart("Diag")
+    augCa,augEpsa = diag_H(Fa, Aaug)
+    augCb,augEpsb = diag_H(Fb, Aaug)
+    myTimer.addEnd("Diag")
+
+
+    
+    one_electron_E  = np.sum(augDa * Haug)
+    one_electron_E += np.sum(augDb * Haug)
+    coulomb_E       = np.sum(augDa * (Ja+Jb))
+    coulomb_E      += np.sum(augDb * (Ja+Jb))
+
+    alpha       = augVpot.functional().x_alpha()
+    exchange_E  = 0.0
+    exchange_E -= alpha * np.sum(augDa * Ka)
+    exchange_E -= alpha * np.sum(augDb * Kb)
+
+    XC_E = augVpot.quadrature_values()["FUNCTIONAL"]
+
+    SCF_E = 0.0
+    SCF_E += Enuc
+    SCF_E += one_electron_E
+    SCF_E += 0.5 * coulomb_E
+    SCF_E += 0.5 * exchange_E
+    SCF_E += XC_E
+
+    print(SCF_E)
+    augOcca = np.zeros(augCa.shape[1])
+    augOccb = np.zeros(augCb.shape[1])
+
+    augOcca[:nalpha] = 1.0 
+    augOccb[:nbeta]  = 1.0
+
+    augOrbitals = copy.deepcopy(orbitals)
+
+    for orb,aug in zip(orbitals,augOrbitals):
+        aug["C"]      = np.zeros(aug_basis.nbf())
+        aug["C"][idx] = orb["C"]
+
+
+    
+
+    for i in augOrbitals:
+        if i["spin"]=="b":
+            """
+            Overlap
+            """
+            #calculate the Overlapp with all other orbitals
+            ovl = np.abs(np.einsum('m,nj,mn->j',i["C"],augCb,Saug))
+            #User wants to switch the index if higher overlap is found
+            if i["DoOvl"] ==True :
+                if i["orb"] != np.argmax(ovl):
+                    i["orb"] = np.argmax(ovl)
+                i["ovl"] = np.max(ovl)
+            else:
+                #just calculate the overlap to assess the character
+                i["ovl"] = ovl[i["orb"]]
+                #Modify the occupation vector
+            augOccb[i["orb"]] = i["occ"]
+
+        elif i["spin"]=="a":
+            """
+            Check if this is still the largest overlap
+            """
+            ovl = np.abs(np.einsum('m,nj,mn->j',i["C"],augCa,Saug))
+            if i["DoOvl"] ==True :
+                if i["orb"] != np.argmax(ovl):
+                    i["orb"] = np.argmax(ovl) # set index to the highest overlap
+                i["ovl"] = np.max(ovl)
+            else:
+                i["ovl"] = ovl[i["orb"]]
+                #Modify the occupation vector
+            augOcca[i["orb"]] = i["occ"]
+
+
+    for c,i in enumerate(augOcca):
+        if i>0.0:
+            print("idx: {} occ: {}".format(c,i))
+    
+    for c,i in enumerate(augOccb):
+        if i>0.0:
+            print("idx: {} occ: {}".format(c,i))
+
+
+    """
+    Flush out a spectrum here
+    """
+ 
+    Daug = aug_mints.ao_dipole()
+    Dx,Dy,Dz = np.asarray(Daug[0]),np.asarray(Daug[1]),np.asarray(Daug[2]) 
+
+    orbI = ([c for c,x in enumerate(augOccb) if x != 1.0][0])
+    orbF = ([c for c,x in enumerate(augOccb) if (x != 1.0) and (c!=orbI)])
+    Mx = augCb.T @ Dx @ augCb 
+    My = augCb.T @ Dy @ augCb 
+    Mz = augCb.T @ Dz @ augCb 
+
+    spec = {}
+    spec["En"] = augEpsb[orbF] - augEpsb[orbI]
+    spec["Dx"] = Mx[orbI,orbF]          
+    spec["Dy"] = My[orbI,orbF]          
+    spec["Dz"] = Mz[orbI,orbF]  
+
+    print("Continnuum starts with {}".format(np.where(augEpsb>0.0)[0][0]))
+
+    psi4.core.print_out("\n{:>16} {:>3}->{:>3} {:>16} {:>16} {:>16} \n".format("Energy [eV]","i","f","<i|x|f>","<i|y|f>","<i|z|f>")) 
+
+    for e,f,x,y,z in zip(spec["En"],orbF,spec["Dx"],spec["Dy"],spec["Dz"]):
+        psi4.core.print_out("{:>16.8f} {:>3}->{:>3} {:>16.8f} {:>16.8f} {:>16.8f} \n".format(e*27.211386,str(orbI),str(f),x,y,z)) 
+
+
+    with open(options["PREFIX"]+'_bAug.spectrum', 'wb') as handle:                         
+            pickle.dump(spec, handle, protocol=pickle.HIGHEST_PROTOCOL)          
+    psi4.core.print_out(("\n{}"+"_bAug.spectrum written.. \n\n").format(options["PREFIX"]))
+
+
+
+
+
+
+
+ 
+
+
+
+    np.savez(options["PREFIX"]+'_exorbsAug',Ca=augCa,Cb=augCb,occa=augOcca,occb=augOccb,epsa=augEpsa,epsb=augEpsb,orbitals=orbitals)
+
+
+        
+
+
+
+
+
+
+
+
+   
+
+    
+
+
+        
+
+
+
+    
+
+
+
+    """
+    center = list(set([x[1] for x in Contribs]))
+
+    for i in center:
+        print("{} {}".format(i,sum([x[1] for x in Contribs if x[0]==i])))
+    """
+
+
+
+
+
+
+
 
 
 
     psi4.core.print_out("\n\n")
-
-
-
-
     OCCA = psi4.core.Vector(nbf)
     OCCB = psi4.core.Vector(nbf)
     OCCA.np[:] = occa

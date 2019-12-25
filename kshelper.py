@@ -14,9 +14,9 @@ import logging
 
 
 def diag_H(H, A):
-    Hp = A.dot(H).dot(A)
+    Hp = A.T @ H @A 
     e, C2 = np.linalg.eigh(Hp)
-    C = A.dot(C2)
+    C = A @ C2
     return (C,e)
 
 class Timer(object):

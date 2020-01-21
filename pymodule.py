@@ -106,7 +106,7 @@ def run_psixas(name, **kwargs):
         Cb[:,loc_sub] = LocalB.L
 
         np.savez(prefix+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb)
-        psi4.core.print_out("Localized Orbitals written")
+        psi4.core.print_out("Localized Orbitals written\n")
 
         OCCA = psi4.core.Vector(nbf)
         OCCB = psi4.core.Vector(nbf)

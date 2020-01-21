@@ -91,7 +91,6 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     Vb = psi4.core.Matrix(nbf,nbf)
 
     sup = psi4.driver.dft.build_superfunctional(func, False)[0]
-    sup.set_deriv(2)
     sup.allocate()
 
     Vpot = psi4.core.VBase.build(wfn.basisset(), sup, "UV")

@@ -38,7 +38,7 @@ def DFTGroundState(mol,func,**kwargs):
     psi4.core.be_quiet()
     mints = psi4.core.MintsHelper(wfn.basisset())
     
-    sup.set_deriv(2)
+    
     sup.allocate()
 
     uhf   = psi4.core.UHF(wfn,sup)
@@ -97,7 +97,7 @@ def DFTGroundState(mol,func,**kwargs):
                 psi4.core.get_option("SCF", "DF_BASIS_SAD"),puream=True, return_atomlist=True)
         SAD = psi4.core.SADGuess.build_SAD(wfn.basisset(), sad_basis_list)
         SAD.set_atomic_fit_bases(sad_fitting_list)
-        SAD.compute_guess();
+        SAD.compute_guess()
         Da = SAD.Da().np
 
         Dhelp = -1.0 * np.copy(Da)

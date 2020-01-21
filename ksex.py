@@ -487,9 +487,16 @@ Starting SCF:
                     Contribs[i][1] += j**2
 
         exci = sorted(Contribs,key=lambda f: f[1])[-1][0]
-        B = augBas["firstRow"]
-
         psi4.core.print_out("\nExc. center index   : {}".format(exci))
+
+        if mol.fsymbol(exci) in ["LI","BE","B","C","N","O","F","NE"]:
+            psi4.core.print_out("\nSym -> 1st row      : {}".format(mol.fsymbol(exci)))
+            B = augBas["firstRow"]
+        else:
+            psi4.core.print_out("\nSym -> 2nd row      : {}".format(mol.fsymbol(exci)))
+            B = augBas["secondRow"]
+
+       
         
         qcmol   = qcdb.Molecule.from_dict(mol.to_dict())
         qcbasis,qcdict = qcdb.libmintsbasisset.BasisSet.pyconstruct(qcmol,'BASIS',"","ORBITAL",options["BASIS"],return_dict=True)

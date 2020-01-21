@@ -462,15 +462,10 @@ Starting SCF:
     
     if options["USE_AUG"]:
         """
-        Question? Can we find the excitation center?
-        This is the augbas code:
-
+        What are we doing here?:
         [1]: Find the excitation center -> exci
-
-        [2]: Rebuild the normal basis set and try to find the index where 
-        we can insert the augmented basis functions
-
-        [3]: 
+        [2]: Rebuild the normal basis set and add the new functions
+        [3]: Copy C to Caug and rebuild and diagonalize the Fock matrix
         """
 
         from .kshelper import augBas 
@@ -656,10 +651,7 @@ Starting SCF:
 
         for orb,aug in zip(orbitals,augOrbitals):
             aug["C"]      = np.zeros(aug_basis.nbf())
-            aug["C"][idx] = orb["C"]
-
-
-        
+            aug["C"][idx] = orb["C"]    
 
         for i in augOrbitals:
             if i["spin"]=="b":
@@ -693,10 +685,6 @@ Starting SCF:
                     #Modify the occupation vector
                 augOcca[i["orb"]] = i["occ"]
 
-        """
-        Flush out a spectrum here
-        """
-    
         Daug = aug_mints.ao_dipole()
         Dx,Dy,Dz = np.asarray(Daug[0]),np.asarray(Daug[1]),np.asarray(Daug[2]) 
 

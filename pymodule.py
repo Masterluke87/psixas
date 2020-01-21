@@ -35,6 +35,7 @@ from psi4.driver.procrouting import proc_util
 from .ksgs import DFTGroundState
 from .ksex import DFTExcitedState
 from .spec import CalcSpec
+from .kshelper import printHeader
 import logging
 
 logging.basicConfig(filename='additional.log',level=logging.INFO,filemode='w', format='%(name)s -%(levelname)s - %(message)s')
@@ -68,6 +69,8 @@ def run_psixas(name, **kwargs):
 
     if "LOC" in mode:
         loc_sub = np.array(psi4.core.get_local_option("PSIXAS","LOC_SUB"),dtype=np.int)
+        printHeader("Entering Localization")
+        psi4.core.be_quiet()
         wfn     = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))
 
         nbf = wfn.nso()
@@ -94,6 +97,7 @@ def run_psixas(name, **kwargs):
 
         LocalA = psi4.core.Localizer.build("PIPEK_MEZEY", wfn.basisset(), locCa )
         LocalB = psi4.core.Localizer.build("PIPEK_MEZEY", wfn.basisset(), locCb )
+        psi4.core.reopen_outfile()
 
         LocalA.localize()
         LocalB.localize()
@@ -122,10 +126,8 @@ def run_psixas(name, **kwargs):
         mw.write(prefix+'_loc.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
         psi4.core.print_out("Moldenfile written\n")
 
-        print ("Localize subset")
-        print (loc_sub)
-
     orbitals = []
+
     if ("EX" in mode):
         orbs   = psi4.core.get_local_option("PSIXAS","ORBS")
         occs   = psi4.core.get_local_option("PSIXAS","OCCS")

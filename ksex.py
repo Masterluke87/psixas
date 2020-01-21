@@ -6,7 +6,7 @@ Created on Sun Aug 19 18:30:31 2018
 
 Module to perform excited state calculations
 """
-from .kshelper import diag_H,Timer, ACDIIS
+from .kshelper import diag_H,Timer, ACDIIS,printHeader
 import numpy as np
 import os
 import psi4
@@ -21,7 +21,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     """
     Perform unrestrictred Kohn-Sham excited state calculation
     """
-    psi4.core.print_out("\nEntering Excited State Kohn-Sham:\n"+33*"="+"\n\n")
+    printHeader("Entering Excited State Kohn-Sham",1)
 
     options = {
         "PREFIX"    : psi4.core.get_local_option("PSIXAS","PREFIX"),
@@ -41,7 +41,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     STEP 1: Read in ground state orbitals or restart from previous
     """
     if (os.path.isfile(options["PREFIX"]+"_exorbs.npz")):
-        psi4.core.print_out("Restarting Calculation from: {} \n\n".format(options["PREFIX"]+"_exorbs.npz")) 
+        psi4.core.print_out("\nRestarting Calculation from: {}".format(options["PREFIX"]+"_exorbs.npz")) 
         Ca = np.load(options["PREFIX"]+"_exorbs.npz")["Ca"]
         Cb = np.load(options["PREFIX"]+"_exorbs.npz")["Cb"]
     else:
@@ -59,7 +59,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
         else:
             raise Exception("Orbital has non a/b spin!")
 
-
+    printHeader("Basis Set:",2)
     wfn   = psi4.core.Wavefunction.build(mol,options["BASIS"])
     aux     = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", psi4.core.get_global_option('BASIS'))
 
@@ -96,9 +96,8 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
     Vpot = psi4.core.VBase.build(wfn.basisset(), sup, "UV")
     Vpot.initialize()
-
-    #This object is needed to write out a molden file later
-    uhf   = psi4.core.UHF(wfn,sup)
+   
+    uhf   = psi4.core.UHF(wfn,sup)  #This object is needed to write out a molden file later
     psi4.core.reopen_outfile()
     """
     Form initial denisty
@@ -153,7 +152,10 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
     Da     = Cocca.np @ Cocca.np.T
     Db     = Coccb.np @ Coccb.np.T
-
+    
+    printHeader("Molecule:",2)
+    mol.print_out()
+    printHeader("XC & JK-Info:",2)
     jk = psi4.core.JK.build(wfn.basisset(),aux,jk_type=psi4.core.get_local_option("SCF","SCF_TYPE"))
     glob_mem = psi4.core.get_memory()/8
     jk.set_memory(int(glob_mem*0.6))
@@ -161,15 +163,17 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     jk.C_left_add(Cocca)
     jk.C_left_add(Coccb)
 
+    psi4.core.print_out(sup.description())
+    psi4.core.print_out(sup.citation())
+    psi4.core.print_out("\n\n")
+    jk.print_header()
+
     Da_m = psi4.core.Matrix(nbf,nbf)
     Db_m = psi4.core.Matrix(nbf,nbf)
     
     diis = ACDIIS(max_vec=options["DIIS_LEN"])
-
-    psi4.core.print_out("""
-Starting SCF:
-"""+13*"="+"""\n
-{:>10} {:8.2E}
+    printHeader("Starting SCF:",2)
+    psi4.core.print_out("""{:>10} {:8.2E}
 {:>10} {:8.2E}
 {:>10} {:8.4f}
 {:>10} {:8.2E}
@@ -206,8 +210,6 @@ Starting SCF:
         myTimer.addStart("JK")
         jk.compute()
         myTimer.addEnd("JK")
-        
-
 
         myTimer.addStart("buildFock")
         Da_m.np[:] = Da
@@ -437,10 +439,6 @@ Starting SCF:
     if gsE!=0.0:
         psi4.core.print_out("{:>20} {:12.8f} [Ha] \n".format("EXCITATION ENERGY:",SCF_E-gsE))
         psi4.core.print_out("{:>20} {:12.8f} [eV] \n\n".format("EXCITATION ENERGY:",(SCF_E-gsE)*27.211385))
-    
-
-    
-
 
     psi4.core.print_out("\nFinal orbital occupation pattern:\n\n")
     psi4.core.print_out("Index|Spin|Occ|Ovl|Freeze|Comment\n"+34*"-")
@@ -470,8 +468,8 @@ Starting SCF:
 
         from .kshelper import augBas 
 
-        psi4.core.print_out("\n\n\nUsing Augmentation Basis Set\n"+"="*28+"\n")
-
+        printHeader("Using Augmentation Basis Set:",2)
+        
         if not (wfn.basisset().has_puream()):
             raise Exception("Please use a basis set with spherical gaussian basis functions...")
 
@@ -692,87 +690,18 @@ Starting SCF:
                     #Modify the occupation vector
                 augOcca[i["orb"]] = i["occ"]
 
-        Daug = aug_mints.ao_dipole()
-        Dx,Dy,Dz = np.asarray(Daug[0]),np.asarray(Daug[1]),np.asarray(Daug[2]) 
+        Daug = np.asarray([np.asarray(x) for x in aug_mints.ao_dipole()])
+        Dx,Dy,Dz = Daug[0],Daug[1],Daug[2]
 
-        orbI = ([c for c,x in enumerate(augOccb) if x != 1.0][0])
-        orbF = ([c for c,x in enumerate(augOccb) if (x != 1.0) and (c!=orbI)])
-        Mx = augCb.T @ Dx @ augCb 
-        My = augCb.T @ Dy @ augCb 
-        Mz = augCb.T @ Dz @ augCb 
-
-        spec = {}
-        spec["En"] = augEpsb[orbF] - augEpsb[orbI]
-        spec["Dx"] = Mx[orbI,orbF]          
-        spec["Dy"] = My[orbI,orbF]          
-        spec["Dz"] = Mz[orbI,orbF]  
-
-        psi4.core.print_out("\n{:>16} {:>3}->{:>3} {:>16} {:>16} {:>16} \n".format("Energy [eV]","i","f","<i|x|f>","<i|y|f>","<i|z|f>")) 
-        psi4.core.print_out("="*(16*4+7*2+5)+"\n")
-        for e,f,x,y,z in zip(spec["En"],orbF,spec["Dx"],spec["Dy"],spec["Dz"]):
-            psi4.core.print_out("{:>16.8f} {:>3}->{:>3} {:>16.8f} {:>16.8f} {:>16.8f} \n".format(e*27.211386,str(orbI),str(f),x,y,z)) 
+        np.savez(options["PREFIX"]+'_exorbsAug',D=Daug,Ca=augCa,Cb=augCb,occa=augOcca,occb=augOccb,epsa=augEpsa,epsb=augEpsb,orbitals=orbitals)
 
 
-        with open(options["PREFIX"]+'_bAug.spectrum', 'wb') as handle:                         
-                pickle.dump(spec, handle, protocol=pickle.HIGHEST_PROTOCOL)          
-        psi4.core.print_out(("\n{}"+"_bAug.spectrum written.. \n\n").format(options["PREFIX"]))
-
-
-
-
-
-
-
-    
-
-
-
-        np.savez(options["PREFIX"]+'_exorbsAug',Ca=augCa,Cb=augCb,occa=augOcca,occb=augOccb,epsa=augEpsa,epsb=augEpsb,orbitals=orbitals)
-
-
-        
-
-
-
-
-
-
-
-
-   
-
-    
-
-
-        
-
-
-
-    
-
-
-
-    """
-    center = list(set([x[1] for x in Contribs]))
-
-    for i in center:
-        print("{} {}".format(i,sum([x[1] for x in Contribs if x[0]==i])))
-    """
-
-
-
-
-
-
-
-
-
-
-    psi4.core.print_out("\n\n")
+    D = np.asarray([np.asarray(x) for x in mints.ao_dipole()])
     OCCA = psi4.core.Vector(nbf)
     OCCB = psi4.core.Vector(nbf)
     OCCA.np[:] = occa
     OCCB.np[:] = occb
+        
 
     uhf.Ca().np[:] = Ca
     uhf.Cb().np[:] = Cb
@@ -783,12 +712,9 @@ Starting SCF:
     uhf.occupation_a().np[:] = occa
     uhf.occupation_b().np[:] = occb
 
-    OCCA.print_out()
-    OCCB.print_out()
-
     mw = psi4.core.MoldenWriter(uhf)
     mw.write(options["PREFIX"]+'_ex.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
-    psi4.core.print_out("\n\n Moldenfile written\n")
-    np.savez(options["PREFIX"]+'_exorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb,orbitals=orbitals)
+    psi4.core.print_out("\nMoldenfile written")
+    np.savez(options["PREFIX"]+'_exorbs',D=D,Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb,orbitals=orbitals)
 
     psi4.core.set_variable('CURRENT ENERGY', SCF_E)

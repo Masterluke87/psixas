@@ -6,7 +6,7 @@ Created on Sun Aug 19 01:57:59 2018
 """
 import psi4
 import numpy as np
-from .kshelper import diag_H,ACDIIS,Timer
+from .kshelper import diag_H,ACDIIS,Timer,printHeader
 import os.path
 import time
 import logging
@@ -16,7 +16,7 @@ def DFTGroundState(mol,func,**kwargs):
     """
     Perform unrestrictred Kohn-Sham
     """
-    psi4.core.print_out("\n\nEntering Ground State Kohn-Sham:\n"+32*"="+"\n\n")
+    printHeader("Entering Ground State Kohn-Sham")
 
     options = {
         "PREFIX"    : psi4.core.get_local_option("PSIXAS","PREFIX"),
@@ -30,6 +30,7 @@ def DFTGroundState(mol,func,**kwargs):
         "DIIS_EPS"  : float(psi4.core.get_local_option("PSIXAS","DIIS_EPS")),
         "MIXMODE"   : "DAMP"}
 
+    printHeader("Basis Set:",2)
     wfn   = psi4.core.Wavefunction.build(mol,options["BASIS"])
     aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", options["BASIS"])
 
@@ -78,7 +79,7 @@ def DFTGroundState(mol,func,**kwargs):
     Cocca       = psi4.core.Matrix(nbf, nalpha)
     Coccb       = psi4.core.Matrix(nbf, nbeta)
     if (os.path.isfile(options["PREFIX"]+"_gsorbs.npz")):
-        psi4.core.print_out("Restarting Calculation")
+        psi4.core.print_out("\nRestarting Calculation \n")
         Ca = np.load(options["PREFIX"]+"_gsorbs.npz")["Ca"]
         Cb = np.load(options["PREFIX"]+"_gsorbs.npz")["Cb"]
         Cocca.np[:]  = Ca[:, :nalpha]
@@ -126,8 +127,10 @@ def DFTGroundState(mol,func,**kwargs):
     """
     end read
     """
+    printHeader("Molecule:",2)
+    mol.print_out()
+    printHeader("XC & JK-Info:",2)
 
-    # Initialize the JK object
     jk = psi4.core.JK.build(wfn.basisset(),aux=aux,jk_type=psi4.core.get_option("SCF", "SCF_TYPE"))
     glob_mem = psi4.core.get_memory()/8
     jk.set_memory(int(glob_mem*0.6))
@@ -137,8 +140,7 @@ def DFTGroundState(mol,func,**kwargs):
 
     Da_m = psi4.core.Matrix(nbf,nbf)
     Db_m = psi4.core.Matrix(nbf,nbf)
-
-    mol.print_out()
+    
     psi4.core.print_out(sup.description())
     psi4.core.print_out(sup.citation())
     psi4.core.print_out("\n\n")
@@ -147,11 +149,9 @@ def DFTGroundState(mol,func,**kwargs):
     diis = ACDIIS(max_vec=options["DIIS_LEN"],diismode=options["DIIS_MODE"])
     diisa_e = 1000.0
     diisb_e = 1000.0
-    
-    psi4.core.print_out("""
-Starting SCF:
-"""+13*"="+"""\n
-{:>10} {:8.2E}
+
+    printHeader("Starting SCF:",2)    
+    psi4.core.print_out("""{:>10} {:8.2E}
 {:>10} {:8.2E}
 {:>10} {:8.4f}
 {:>10} {:8.2E}
@@ -330,9 +330,6 @@ Starting SCF:
 
     uhf.occupation_a().np[:] = occa
     uhf.occupation_b().np[:] = occb
-
-    OCCA.print_out()
-    OCCB.print_out()
 
     mw = psi4.core.MoldenWriter(uhf)
     mw.write(options["PREFIX"]+'_gs.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)

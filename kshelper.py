@@ -9,6 +9,7 @@ import numpy as np
 import time
 from scipy.optimize import minimize 
 import logging
+import psi4
 
 
 
@@ -259,6 +260,27 @@ class ACDIIS(object):
         # Solve pulay equations
         ci = np.dot(np.linalg.pinv(B), resid)
         self.c_cdiis = ci[:-1].copy()
+
+
+def printHeader(txt,order=1):
+    if order==1:
+        n = len(txt)+2
+        psi4.core.print_out("\n\n"+"="*n+"\n")
+        psi4.core.print_out("="+txt+"=\n")
+        psi4.core.print_out("="*n+"\n")
+
+    if order==2:
+        n = len(txt)
+        psi4.core.print_out("\n\n"+txt+"\n")
+        psi4.core.print_out("="*n+"\n\n")
+        
+        
+    
+
+
+
+
+
 
 
 augBas ={"firstRow" : [[0,(1.2380000000,1.0)],

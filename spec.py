@@ -70,7 +70,7 @@ def CalcSpec(mol,func):
         psi4.core.print_out(("\n{}"+"_b.spectrum written.. \n\n").format(prefix))
 
     if ("a" in [x['spin'] for x in orbitals]):
-        print ("ALFA orbitals")
+        raise Exception("Alpha orbitals not yet implemented, please use beta orbitals")
 
 def printOccupation(title,occs,width):
     psi4.core.print_out("\n{}: \n".format(title))

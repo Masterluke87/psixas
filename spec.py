@@ -1,76 +1,76 @@
 import numpy as np
-import pdb
 import psi4
 import pickle
-
+import os
+from .kshelper import printHeader
 
 def CalcSpec(mol,func):
-    psi4.core.print_out("\n\nX-Ray Absorption Spectrum Calculation:\n"+38*"="+"\n\n")
+    printHeader("X-Ray Absorption Spectrum Calculation")
+    Files = [] 
     prefix = psi4.core.get_local_option("PSIXAS","PREFIX")
 
+    if os.path.exists(prefix+"_exorbs.npz"):
+        Files.append(prefix+"_exorbs.npz")
+    if os.path.exists(prefix+"_exorbsAug.npz"):
+        Files.append(prefix+"_exorbsAug.npz")
 
-    psi4.core.print_out("Using orbitals, occupations from file: {}  \n".format(prefix+"_exorbs.npz"))
+    psi4.core.print_out("\nFound {} files with orbital information".format(len(Files)))
 
-    Ca = np.load(prefix+"_exorbs.npz")["Ca"]
-    Cb = np.load(prefix+"_exorbs.npz")["Cb"]
+    for i in Files:
+        psi4.core.print_out("\nUsing orbitals, occupations from file: {}  \n\n".format(i))
+        Ca = np.load(i)["Ca"]
+        Cb = np.load(i)["Cb"]
+        occa = np.load(i)["occa"]
+        occb = np.load(i)["occb"]
+        epsa = np.load(i)["epsa"]
+        epsb = np.load(i)["epsb"]
+        orbitals = np.load(i, allow_pickle=True)["orbitals"]
 
-    occa = np.load(prefix+"_exorbs.npz")["occa"]
-    occb = np.load(prefix+"_exorbs.npz")["occb"]
+        psi4.core.print_out("Occupation pattern: \n")
+        printOccupation("Alpha",occa,15)
+        printOccupation("Beta ",occb,15)
 
-    epsa = np.load(prefix+"_exorbs.npz")["epsa"]
-    epsb = np.load(prefix+"_exorbs.npz")["epsb"]
+        D = np.load(i)["D"]
+        Dx,Dy,Dz = D[0],D[1],D[2]
+        spec = {}
 
-    orbitals = np.load(prefix+"_exorbs.npz", allow_pickle=True)["orbitals"]
+        if ("b" in [x['spin'] for x in orbitals]):
+            psi4.core.print_out("\nBETA orbitals")
+            orbI = ([c for c,x in enumerate(occb) if x != 1.0][0])
+            psi4.core.print_out("\nInitial Orbital: {:d}".format(orbI))
+            Ci = Cb[orbI]
+            orbF = ([c for c,x in enumerate(occb) if (x != 1.0) and (c!=orbI)])
+            psi4.core.print_out("\nFinal Orbitals: {} \n\n".format(str(orbF)))
+            Cf = Cb[orbF]
 
+            Mx = Cb.T @ Dx @ Cb
+            My = Cb.T @ Dy @ Cb
+            Mz = Cb.T @ Dz @ Cb
 
-    psi4.core.print_out("Occupation pattern: \n")
-
-    printOccupation("Alpha",occa,15)
-    printOccupation("Beta ",occb,15)
-
-    psi4.core.be_quiet()
-    wfn   = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))
-    mints = psi4.core.MintsHelper(wfn.basisset())
-    psi4.core.reopen_outfile()
-
-    D = mints.ao_dipole()
-    Dx,Dy,Dz = np.asarray(D[0]),np.asarray(D[1]),np.asarray(D[2])
-
-    spec = {}
-
-    if ("b" in [x['spin'] for x in orbitals]):
-        psi4.core.print_out("\nBETA orbitals")
-        orbI = ([c for c,x in enumerate(occb) if x != 1.0][0])
-        psi4.core.print_out("\nInitial Orbital: {:d}".format(orbI))
-        Ci = Cb[orbI]
-        orbF = ([c for c,x in enumerate(occb) if (x != 1.0) and (c!=orbI)])
-        psi4.core.print_out("\nFinal Orbitals: {} \n\n".format(str(orbF)))
-        Cf = Cb[orbF]
-
-        Mx = Cb.T @ Dx @ Cb
-        My = Cb.T @ Dy @ Cb
-        Mz = Cb.T @ Dz @ Cb
-
-        spec["En"] = epsb[orbF] - epsb[orbI]
-        spec["Dx"] = Mx[orbI,orbF]
-        spec["Dy"] = My[orbI,orbF]
-        spec["Dz"] = Mz[orbI,orbF]
+            spec["En"] = epsb[orbF] - epsb[orbI]
+            spec["Dx"] = Mx[orbI,orbF]
+            spec["Dy"] = My[orbI,orbF]
+            spec["Dz"] = Mz[orbI,orbF]
 
 
-        psi4.core.print_out("\nTransition-Potential excitation energies and transition dipole moments\n")
-        psi4.core.print_out("\n{:>16} {:>3}->{:>3} {:>16} {:>16} {:>16} \n".format("Energy [eV]","i","f","<i|x|f>","<i|y|f>","<i|z|f>"))
-        psi4.core.print_out("="*(16*4+7*2+5)+"\n")
+            psi4.core.print_out("\nTransition-Potential excitation energies and transition dipole moments\n")
+            psi4.core.print_out("\n{:>16} {:>3}->{:>3} {:>16} {:>16} {:>16} \n".format("Energy [eV]","i","f","<i|x|f>","<i|y|f>","<i|z|f>"))
+            psi4.core.print_out("="*(16*4+7*2+5)+"\n")
 
-        for e,f,x,y,z in zip(spec["En"],orbF,spec["Dx"],spec["Dy"],spec["Dz"]):
-            psi4.core.print_out("{:>16.8f} {:>3}->{:>3} {:>16.8f} {:>16.8f} {:>16.8f} \n".format(e*27.211386,str(orbI),str(f),x,y,z))
+            for e,f,x,y,z in zip(spec["En"],orbF,spec["Dx"],spec["Dy"],spec["Dz"]):
+                psi4.core.print_out("{:>16.8f} {:>3}->{:>3} {:>16.8f} {:>16.8f} {:>16.8f} \n".format(e*27.211386,str(orbI),str(f),x,y,z))
 
+            if "Aug" in i:
+                with open(prefix+'_bAug.spectrum', 'wb') as handle:
+                    pickle.dump(spec, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                psi4.core.print_out(("\n{}"+"_bAug.spectrum written.. \n\n").format(prefix))
+            else:
+                with open(prefix+'_b.spectrum', 'wb') as handle:
+                    pickle.dump(spec, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                psi4.core.print_out(("\n{}"+"_b.spectrum written.. \n\n").format(prefix))
 
-        with open(prefix+'_b.spectrum', 'wb') as handle:
-            pickle.dump(spec, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        psi4.core.print_out(("\n{}"+"_b.spectrum written.. \n\n").format(prefix))
-
-    if ("a" in [x['spin'] for x in orbitals]):
-        print ("ALFA orbitals")
+        if ("a" in [x['spin'] for x in orbitals]):
+            raise Exception("Alpha orbitals not yet implemented, please use beta orbitals")
 
 def printOccupation(title,occs,width):
     psi4.core.print_out("\n{}: \n".format(title))

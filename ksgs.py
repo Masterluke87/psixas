@@ -6,7 +6,7 @@ Created on Sun Aug 19 01:57:59 2018
 """
 import psi4
 import numpy as np
-from .kshelper import diag_H,ACDIIS,Timer
+from .kshelper import diag_H,ACDIIS,Timer,printHeader
 import os.path
 import time
 import logging
@@ -16,7 +16,7 @@ def DFTGroundState(mol,func,**kwargs):
     """
     Perform unrestrictred Kohn-Sham
     """
-    psi4.core.print_out("\n\nEntering Ground State Kohn-Sham:\n"+32*"="+"\n\n")
+    printHeader("Entering Ground State Kohn-Sham")
 
     options = {
         "PREFIX"    : psi4.core.get_local_option("PSIXAS","PREFIX"),
@@ -30,6 +30,7 @@ def DFTGroundState(mol,func,**kwargs):
         "DIIS_EPS"  : float(psi4.core.get_local_option("PSIXAS","DIIS_EPS")),
         "MIXMODE"   : "DAMP"}
 
+    printHeader("Basis Set:",2)
     wfn   = psi4.core.Wavefunction.build(mol,options["BASIS"])
     aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", options["BASIS"])
 
@@ -37,7 +38,7 @@ def DFTGroundState(mol,func,**kwargs):
     psi4.core.be_quiet()
     mints = psi4.core.MintsHelper(wfn.basisset())
     
-    sup.set_deriv(2)
+    
     sup.allocate()
 
     uhf   = psi4.core.UHF(wfn,sup)
@@ -78,7 +79,7 @@ def DFTGroundState(mol,func,**kwargs):
     Cocca       = psi4.core.Matrix(nbf, nalpha)
     Coccb       = psi4.core.Matrix(nbf, nbeta)
     if (os.path.isfile(options["PREFIX"]+"_gsorbs.npz")):
-        psi4.core.print_out("Restarting Calculation")
+        psi4.core.print_out("\nRestarting Calculation \n")
         Ca = np.load(options["PREFIX"]+"_gsorbs.npz")["Ca"]
         Cb = np.load(options["PREFIX"]+"_gsorbs.npz")["Cb"]
         Cocca.np[:]  = Ca[:, :nalpha]
@@ -96,13 +97,13 @@ def DFTGroundState(mol,func,**kwargs):
                 psi4.core.get_option("SCF", "DF_BASIS_SAD"),puream=True, return_atomlist=True)
         SAD = psi4.core.SADGuess.build_SAD(wfn.basisset(), sad_basis_list)
         SAD.set_atomic_fit_bases(sad_fitting_list)
-        SAD.compute_guess();
+        SAD.compute_guess()
         Da = SAD.Da().np
 
         Dhelp = -1.0 * np.copy(Da)
         Dhelp = A.T @ S.T @ Dhelp @ S @ A
 
-        ea,C1 = np.linalg.eigh(Dhelp)
+        _,C1 = np.linalg.eigh(Dhelp)
 
         Ca = A @ C1
         Cb = np.copy(Ca)
@@ -126,32 +127,36 @@ def DFTGroundState(mol,func,**kwargs):
     """
     end read
     """
+    printHeader("Molecule:",2)
+    mol.print_out()
+    printHeader("XC & JK-Info:",2)
 
-    # Initialize the JK object
     jk = psi4.core.JK.build(wfn.basisset(),aux=aux,jk_type=psi4.core.get_option("SCF", "SCF_TYPE"))
     glob_mem = psi4.core.get_memory()/8
     jk.set_memory(int(glob_mem*0.6))
+    
+    if (sup.is_x_hybrid()):
+        jk.set_do_K(True)
+    if (sup.is_x_lrc()):
+        jk.set_omega(sup.x_omega())
+        jk.set_do_wK(True)
     jk.initialize()
     jk.C_left_add(Cocca)
     jk.C_left_add(Coccb)
 
     Da_m = psi4.core.Matrix(nbf,nbf)
     Db_m = psi4.core.Matrix(nbf,nbf)
-
-    mol.print_out()
-    psi4.core.print_out(sup.description())
-    psi4.core.print_out(sup.citation())
+    
+    sup.print_out()
     psi4.core.print_out("\n\n")
     jk.print_header()
         
     diis = ACDIIS(max_vec=options["DIIS_LEN"],diismode=options["DIIS_MODE"])
     diisa_e = 1000.0
     diisb_e = 1000.0
-    
-    psi4.core.print_out("""
-Starting SCF:
-"""+13*"="+"""\n
-{:>10} {:8.2E}
+
+    printHeader("Starting SCF:",2)    
+    psi4.core.print_out("""{:>10} {:8.2E}
 {:>10} {:8.2E}
 {:>10} {:8.4f}
 {:>10} {:8.2E}
@@ -186,15 +191,19 @@ Starting SCF:
 
         Ja = np.asarray(jk.J()[0])
         Jb = np.asarray(jk.J()[1])
-        Ka = np.asarray(jk.K()[0])
-        Kb = np.asarray(jk.K()[1])
 
         if SCF_ITER>1 :
             FaOld = np.copy(Fa)
             FbOld = np.copy(Fb)
 
-        Fa = (H + (Ja + Jb) - Vpot.functional().x_alpha()*Ka + Va)
-        Fb = (H + (Ja + Jb) - Vpot.functional().x_alpha()*Kb + Vb)
+        Fa = H + (Ja + Jb) + Va
+        Fb = H + (Ja + Jb) + Vb
+        if sup.is_x_hybrid():
+            Fa -= sup.x_alpha()*np.asarray(jk.K()[0]) 
+            Fb -= sup.x_alpha()*np.asarray(jk.K()[1])
+        if sup.is_x_lrc(): 
+            Fa -= sup.x_beta()*np.asarray(jk.wK()[0]) 
+            Fb -= sup.x_beta()*np.asarray(jk.wK()[1])
         """
         END BUILD FOCK
         """
@@ -207,12 +216,16 @@ Starting SCF:
         coulomb_E       = np.sum(Da * (Ja+Jb))
         coulomb_E      += np.sum(Db * (Ja+Jb))
 
-        alpha       = Vpot.functional().x_alpha()
-        exchange_E  = 0.0;
-        exchange_E -= alpha * np.sum(Da * Ka)
-        exchange_E -= alpha * np.sum(Db * Kb)
+        exchange_E  = 0.0
+        if sup.is_x_hybrid():
+            exchange_E -=  sup.x_alpha() * np.sum(Da * np.asarray(jk.K()[0]))
+            exchange_E -=  sup.x_alpha() * np.sum(Db * np.asarray(jk.K()[1]))
+        if sup.is_x_lrc():
+            exchange_E -= sup.x_beta() * np.sum(Da * np.asarray(jk.wK()[0]))
+            exchange_E -= sup.x_beta() * np.sum(Db * np.asarray(jk.wK()[1]))
 
-        XC_E = Vpot.quadrature_values()["FUNCTIONAL"];
+
+        XC_E = Vpot.quadrature_values()["FUNCTIONAL"]
 
 
         SCF_E = 0.0
@@ -330,9 +343,6 @@ Starting SCF:
 
     uhf.occupation_a().np[:] = occa
     uhf.occupation_b().np[:] = occb
-
-    OCCA.print_out()
-    OCCB.print_out()
 
     mw = psi4.core.MoldenWriter(uhf)
     mw.write(options["PREFIX"]+'_gs.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)

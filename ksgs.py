@@ -103,7 +103,7 @@ def DFTGroundState(mol,func,**kwargs):
         Dhelp = -1.0 * np.copy(Da)
         Dhelp = A.T @ S.T @ Dhelp @ S @ A
 
-        ea,C1 = np.linalg.eigh(Dhelp)
+        _,C1 = np.linalg.eigh(Dhelp)
 
         Ca = A @ C1
         Cb = np.copy(Ca)
@@ -134,6 +134,12 @@ def DFTGroundState(mol,func,**kwargs):
     jk = psi4.core.JK.build(wfn.basisset(),aux=aux,jk_type=psi4.core.get_option("SCF", "SCF_TYPE"))
     glob_mem = psi4.core.get_memory()/8
     jk.set_memory(int(glob_mem*0.6))
+    
+    if (sup.is_x_hybrid()):
+        jk.set_do_K(True)
+    if (sup.is_x_lrc()):
+        jk.set_omega(sup.x_omega())
+        jk.set_do_wK(True)
     jk.initialize()
     jk.C_left_add(Cocca)
     jk.C_left_add(Coccb)
@@ -141,8 +147,7 @@ def DFTGroundState(mol,func,**kwargs):
     Da_m = psi4.core.Matrix(nbf,nbf)
     Db_m = psi4.core.Matrix(nbf,nbf)
     
-    psi4.core.print_out(sup.description())
-    psi4.core.print_out(sup.citation())
+    sup.print_out()
     psi4.core.print_out("\n\n")
     jk.print_header()
         
@@ -186,15 +191,19 @@ def DFTGroundState(mol,func,**kwargs):
 
         Ja = np.asarray(jk.J()[0])
         Jb = np.asarray(jk.J()[1])
-        Ka = np.asarray(jk.K()[0])
-        Kb = np.asarray(jk.K()[1])
 
         if SCF_ITER>1 :
             FaOld = np.copy(Fa)
             FbOld = np.copy(Fb)
 
-        Fa = (H + (Ja + Jb) - Vpot.functional().x_alpha()*Ka + Va)
-        Fb = (H + (Ja + Jb) - Vpot.functional().x_alpha()*Kb + Vb)
+        Fa = H + (Ja + Jb) + Va
+        Fb = H + (Ja + Jb) + Vb
+        if sup.is_x_hybrid():
+            Fa -= sup.x_alpha()*np.asarray(jk.K()[0]) 
+            Fb -= sup.x_alpha()*np.asarray(jk.K()[1])
+        if sup.is_x_lrc(): 
+            Fa -= sup.x_beta()*np.asarray(jk.wK()[0]) 
+            Fb -= sup.x_beta()*np.asarray(jk.wK()[1])
         """
         END BUILD FOCK
         """
@@ -207,12 +216,16 @@ def DFTGroundState(mol,func,**kwargs):
         coulomb_E       = np.sum(Da * (Ja+Jb))
         coulomb_E      += np.sum(Db * (Ja+Jb))
 
-        alpha       = Vpot.functional().x_alpha()
-        exchange_E  = 0.0;
-        exchange_E -= alpha * np.sum(Da * Ka)
-        exchange_E -= alpha * np.sum(Db * Kb)
+        exchange_E  = 0.0
+        if sup.is_x_hybrid():
+            exchange_E -=  sup.x_alpha() * np.sum(Da * np.asarray(jk.K()[0]))
+            exchange_E -=  sup.x_alpha() * np.sum(Db * np.asarray(jk.K()[1]))
+        if sup.is_x_lrc():
+            exchange_E -= sup.x_beta() * np.sum(Da * np.asarray(jk.wK()[0]))
+            exchange_E -= sup.x_beta() * np.sum(Db * np.asarray(jk.wK()[1]))
 
-        XC_E = Vpot.quadrature_values()["FUNCTIONAL"];
+
+        XC_E = Vpot.quadrature_values()["FUNCTIONAL"]
 
 
         SCF_E = 0.0

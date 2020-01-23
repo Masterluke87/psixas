@@ -274,14 +274,6 @@ def printHeader(txt,order=1):
         psi4.core.print_out("\n\n"+txt+"\n")
         psi4.core.print_out("="*n+"\n\n")
         
-        
-    
-
-
-
-
-
-
 
 augBas ={"firstRow" : [[0,(1.2380000000,1.0)],
    [0,(0.8840000000,1.0)],

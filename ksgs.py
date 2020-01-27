@@ -114,16 +114,7 @@ def DFTGroundState(mol,func,**kwargs):
         #This is the guess!
         Da  = Cocca.np @ Cocca.np.T
         Db  = Coccb.np @ Coccb.np.T
- 
-        """
-        Ca,epsa     = diag_H(H,A)       
-        Cocca.np[:] = Ca[:, :nalpha]
-        Da          = Ca[:, :nalpha] @ Ca[:, :nalpha].T
 
-        Cb,epsb     = diag_H(H,A)        
-        Coccb.np[:] = Cb[:, :nbeta]
-        Db          = Cb[:, :nbeta] @ Cb[:, :nbeta].T
-        """
     """
     end read
     """

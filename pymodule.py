@@ -62,7 +62,7 @@ def run_psixas(name, **kwargs):
     tmp = psi4.core.get_local_option("PSIXAS","MODE")
 
     if (psi4.core.has_local_option_changed("SCF","SCF_TYPE")==False):
-        psi4.core.set_local_option("SCF","SCF_TYPE","MEM_DF")
+        psi4.core.set_local_option("SCF","SCF_TYPE","DF")
     mode = tmp.split("+")
     if not(all([x in ["GS","LOC","EX","SPEC"] for x in mode])):
         raise Exception("Wrong mode, possible values are GS, LOC, EX, SPEC.")

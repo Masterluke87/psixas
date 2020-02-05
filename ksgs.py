@@ -32,7 +32,7 @@ def DFTGroundState(mol,func,**kwargs):
 
     printHeader("Basis Set:",2)
     wfn   = psi4.core.Wavefunction.build(mol,options["BASIS"])
-    aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", options["BASIS"])
+    aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", options["BASIS"],puream=wfn.basisset().has_puream())
 
     sup = psi4.driver.dft.build_superfunctional(func, False)[0]
     psi4.core.be_quiet()
@@ -122,15 +122,20 @@ def DFTGroundState(mol,func,**kwargs):
     mol.print_out()
     printHeader("XC & JK-Info:",2)
 
+    if (sup.is_x_lrc()):
+      if (psi4.core.has_local_option_changed("SCF","SCF_TYPE")==False):
+            psi4.core.set_local_option("SCF","SCF_TYPE","DISK_DF")
+    else:
+        if (psi4.core.has_local_option_changed("SCF","SCF_TYPE")==False):
+            psi4.core.set_local_option("SCF","SCF_TYPE","MEM_DF")  
+
     jk = psi4.core.JK.build(wfn.basisset(),aux=aux,jk_type=psi4.core.get_option("SCF", "SCF_TYPE"))
     glob_mem = psi4.core.get_memory()/8
     jk.set_memory(int(glob_mem*0.6))
-    
-    if (sup.is_x_hybrid()):
-        jk.set_do_K(True)
-    if (sup.is_x_lrc()):
-        jk.set_omega(sup.x_omega())
-        jk.set_do_wK(True)
+    jk.set_do_K(sup.is_x_hybrid())
+    jk.set_do_wK(sup.is_x_lrc())
+    jk.set_omega(sup.x_omega())
+        
     jk.initialize()
     jk.C_left_add(Cocca)
     jk.C_left_add(Coccb)
@@ -337,7 +342,7 @@ def DFTGroundState(mol,func,**kwargs):
 
     mw = psi4.core.MoldenWriter(uhf)
     mw.write(options["PREFIX"]+'_gs.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
-    psi4.core.print_out("Moldenfile written\n")
+    psi4.core.print_out("\nMoldenfile written\n")
     
     np.savez(options["PREFIX"]+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
     psi4.core.print_out("Canoncical Orbitals written\n\n")                        

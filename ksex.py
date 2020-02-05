@@ -61,7 +61,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
     printHeader("Basis Set:",2)
     wfn   = psi4.core.Wavefunction.build(mol,options["BASIS"])
-    aux     = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", psi4.core.get_global_option('BASIS'))
+    aux   = psi4.core.BasisSet.build(mol, "DF_BASIS_SCF", "", "JKFIT", options["BASIS"],puream=wfn.basisset().has_puream())
 
     psi4.core.be_quiet()
     mints = psi4.core.MintsHelper(wfn.basisset())
@@ -155,14 +155,20 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     printHeader("Molecule:",2)
     mol.print_out()
     printHeader("XC & JK-Info:",2)
+    if (sup.is_x_lrc()):
+      if (psi4.core.has_local_option_changed("SCF","SCF_TYPE")==False):
+            psi4.core.set_local_option("SCF","SCF_TYPE","DISK_DF")
+    else:
+        if (psi4.core.has_local_option_changed("SCF","SCF_TYPE")==False):
+            psi4.core.set_local_option("SCF","SCF_TYPE","MEM_DF") 
+
     jk = psi4.core.JK.build(wfn.basisset(),aux,jk_type=psi4.core.get_local_option("SCF","SCF_TYPE"))
     glob_mem = psi4.core.get_memory()/8
     jk.set_memory(int(glob_mem*0.6))
-    if (sup.is_x_hybrid()):
-        jk.set_do_K(True)
-    if (sup.is_x_lrc()):
-        jk.set_omega(sup.x_omega())
-        jk.set_do_wK(True)
+    jk.set_do_K(sup.is_x_hybrid())
+    jk.set_do_wK(sup.is_x_lrc())
+    jk.set_omega(sup.x_omega())
+     
     jk.initialize()
     jk.C_left_add(Cocca)
     jk.C_left_add(Coccb)

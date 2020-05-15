@@ -1,7 +1,7 @@
 Installation 
 ============
 
-The most convenient way to get PSIXAS to run is to use PSI4 via 
+The most convenient way to get PSIXAS to run is to use Psi4 via 
 conda or miniconda. Let's assume you created a new environment:
 
 .. code-block:: bash
@@ -9,13 +9,14 @@ conda or miniconda. Let's assume you created a new environment:
     conda create -n p4env psi4 psi4-dev -c psi4
     conda activate p4env
 
-which will install the most recent stable PSI4.
+this will install the most recent stable version of Psi4.
 
-Then you can checkout the PSIXAS repository into the directory where all your PSI4
+Then, you can checkout the PSIXAS repository into the directory where all your Psi4
 plugins are located:
 
 .. code-block:: bash
 
+    cd /path/to/psi4Plugins
     git clone https://github.com/Masterluke87/psixas
     cd psixas
     $(psi4 --plugin-compile)

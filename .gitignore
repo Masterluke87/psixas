@@ -6,3 +6,4 @@ CMakeCache.txt
 *.so
 cmake_install.cmake
 CMakeFiles/
+docs/_build/

@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PSIXAS's documentation!
+Welcome to the documentation of:
 ==================================
 
 .. image:: figs/logo.png
@@ -15,6 +15,7 @@ Welcome to PSIXAS's documentation!
    :caption: Table of Contents
 
    introduction
+   install
 
 Indices and tables
 ==================

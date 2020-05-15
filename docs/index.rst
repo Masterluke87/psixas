@@ -6,6 +6,10 @@
 Welcome to PSIXAS's documentation!
 ==================================
 
+.. image:: figs/logo.png
+   :width: 150px
+   :align: center
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

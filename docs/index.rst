@@ -16,6 +16,7 @@ Welcome to the documentation of:
 
    introduction
    install
+   tutorial
 
 Indices and tables
 ==================

@@ -12,7 +12,7 @@ For 3,3,3-Trifluoropropanol one would expect three distinct C1s signals in the X
 to one carbon atom in the molecule.
 
 The central quantity one has to calculate when simulating XPS spectra are the so-called core-electron binding energies (CEBEs).
-These can be obtain via a :math:`\Delta`-Kohn-Sham calculation. The CEBE for an excitation center i is given 
+These can be obtained via a :math:`\Delta`-Kohn-Sham calculation. The CEBE for an excitation center i is given 
 as :math:`CEBE = E^{i}_{kat} - E_{neu}`, where :math:`E_{neu}` and :math:`E_{kat}` are the energies of the neutral 
 and core-ionized molecule, respectively.
 

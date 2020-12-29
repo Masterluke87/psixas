@@ -3,7 +3,7 @@
 </p>
 A Psi4 plugin to calculate X-ray absorption spectra (NEXAFS, PP-NEXAFS, XPS). The implemented methods are based on the Transition-Potential and Delta-Kohn-Sham approach. 
 
-For details, please refer to our paper in the [Journal of Computational Chemistry](https://onlinelibrary.wiley.com/doi/full/10.1002/jcc.26219) and the documentation (in progress).
+For details, please refer to our paper in the [Journal of Computational Chemistry](https://onlinelibrary.wiley.com/doi/full/10.1002/jcc.26219) and the [documentation](https://psixas.readthedocs.io) (still in progress).
 
 Parts of the program were inspired by the [psi4numpy](https://github.com/psi4/psi4numpy) package.
 

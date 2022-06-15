@@ -7,6 +7,7 @@ Created on Sun Aug 19 18:30:31 2018
 Module to perform excited state calculations
 """
 from psixas.src.helper.kshelper import diag_H,Timer, ACDIIS,printHeader
+from psixas.src.helper.kshelper import MoldenWriter
 import numpy as np
 import os
 import psi4
@@ -708,23 +709,9 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
 
 
     D = np.asarray([np.asarray(x) for x in mints.ao_dipole()])
-    OCCA = psi4.core.Vector(nbf)
-    OCCB = psi4.core.Vector(nbf)
-    OCCA.np[:] = occa
-    OCCB.np[:] = occb
-        
-
-    uhf.Ca().np[:] = Ca
-    uhf.Cb().np[:] = Cb
-
-    uhf.epsilon_a().np[:] = epsa
-    uhf.epsilon_b().np[:] = epsb
-
-    uhf.occupation_a().np[:] = occa
-    uhf.occupation_b().np[:] = occb
-
-    mw = psi4.core.MoldenWriter(uhf)
-    mw.write(options["PREFIX"]+'_ex.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
+    
+    MoldenWriter(options["PREFIX"]+'_ex.molden',wfn,Ca,Cb,epsa,epsb,occa,occb)
+    
     psi4.core.print_out("\nMoldenfile written")
     np.savez(options["PREFIX"]+'_exorbs',D=D,Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb,orbitals=orbitals)
 

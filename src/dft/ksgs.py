@@ -7,6 +7,7 @@ Created on Sun Aug 19 01:57:59 2018
 import psi4
 import numpy as np
 from psixas.src.helper.kshelper import diag_H,ACDIIS,Timer,printHeader
+from psixas.src.helper.kshelper import MoldenWriter
 import os.path
 import time
 import logging
@@ -314,29 +315,14 @@ def DFTGroundState(mol,func,**kwargs):
 
     psi4.core.print_out("\n\nFINAL GS SCF ENERGY: {:12.8f} [Ha] \n\n".format(SCF_E))
 
-    #mw = psi4.core.MoldenWriter(wfn)
     occa = np.zeros(nbf,dtype=np.float)
     occb = np.zeros(nbf,dtype=np.float)
 
     occa[:nalpha] = 1.0
     occb[:nbeta]  = 1.0
 
-    OCCA = psi4.core.Vector(nbf)
-    OCCB = psi4.core.Vector(nbf)
-    OCCA.np[:] = occa
-    OCCB.np[:] = occb
-
-    uhf.Ca().np[:] = Ca
-    uhf.Cb().np[:] = Cb
-
-    uhf.epsilon_a().np[:] = epsa
-    uhf.epsilon_b().np[:] = epsb
-    #uhf.occupation_a().np[:] = occa
-    #uhf.occupation_b().np[:] = occb
-
-    #mw = psi4.core.MoldenWriter(uhf)
-    uhf.write_molden(options["PREFIX"]+'_gs.molden')
-    #mw.write(options["PREFIX"]+'_gs.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
+    MoldenWriter(options["PREFIX"]+'_gs.molden',wfn,Ca,Cb,epsa,epsb,occa,occb)
+    
     psi4.core.print_out("Moldenfile written\n")
     
     np.savez(options["PREFIX"]+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)

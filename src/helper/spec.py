@@ -2,7 +2,7 @@ import numpy as np
 import psi4
 import pickle
 import os
-from .kshelper import printHeader
+from psixas.src.helper.kshelper import printHeader
 
 def CalcSpec(mol,func):
     printHeader("X-Ray Absorption Spectrum Calculation")

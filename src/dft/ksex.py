@@ -6,7 +6,7 @@ Created on Sun Aug 19 18:30:31 2018
 
 Module to perform excited state calculations
 """
-from .kshelper import diag_H,Timer, ACDIIS,printHeader
+from psixas.src.helper.kshelper import diag_H,Timer, ACDIIS,printHeader
 import numpy as np
 import os
 import psi4

@@ -32,10 +32,10 @@ import numpy as np
 import psi4
 import psi4.driver.p4util as p4util
 from psi4.driver.procrouting import proc_util
-from .ksgs import DFTGroundState
-from .ksex import DFTExcitedState
-from .spec import CalcSpec
-from .kshelper import printHeader
+from psixas.src.dft.ksgs import DFTGroundState
+from psixas.src.dft.ksex import DFTExcitedState
+from psixas.src.helper.spec import CalcSpec
+from psixas.src.helper.kshelper import printHeader
 import logging
 
 logging.basicConfig(filename='additional.log',level=logging.INFO,filemode='w', format='%(name)s -%(levelname)s - %(message)s')

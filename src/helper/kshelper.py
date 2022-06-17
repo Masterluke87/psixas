@@ -14,8 +14,6 @@ import psi4
 
 
 def MoldenWriter(filename, wavefunction, CaIn, CbIn, eps_a, eps_b,occa,occb):
-    print("Hello from MoldenWriter")
-
     basisset = wavefunction.basisset()
     mol = wavefunction.molecule()
     # Header and geometry (Atom, Atom #, Z, x, y, z)

@@ -38,7 +38,7 @@ from psixas.src.helper.spec import CalcSpec
 from psixas.src.helper.kshelper import printHeader
 import logging
 
-logging.basicConfig(filename='additional.log',level=logging.INFO,filemode='w', format='%(name)s -%(levelname)s - %(message)s')
+logging.basicConfig(filename='additional.log',level=logging.CRITICAL,filemode='w', format='%(name)s -%(levelname)s - %(message)s')
 
 
 

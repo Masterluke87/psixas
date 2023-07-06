@@ -31,6 +31,7 @@ import sys
 import numpy as np
 import psi4
 import psi4.driver.p4util as p4util
+from psixas.src.helper.kshelper import MoldenWriter
 from psi4.driver.procrouting import proc_util
 from psixas.src.dft.ksgs import DFTGroundState
 from psixas.src.dft.ksex import DFTExcitedState
@@ -116,17 +117,7 @@ def run_psixas(name, **kwargs):
         OCCA.np[:] = occa
         OCCB.np[:] = occb
 
-        uhf.Ca().np[:] = Ca
-        uhf.Cb().np[:] = Cb
-
-        uhf.epsilon_a().np[:] = epsa
-        uhf.epsilon_b().np[:] = epsb
-
-        uhf.occupation_a().np[:] = occa
-        uhf.occupation_b().np[:] = occb
-
-        mw = psi4.core.MoldenWriter(uhf)
-        mw.write(prefix+'_loc.molden',uhf.Ca(),uhf.Cb(),uhf.epsilon_a(),uhf.epsilon_b(),OCCA,OCCB,True)
+        MoldenWriter(prefix+'_loc.molden',wfn,Ca,Cb,epsa,epsb,occa,occb)
         psi4.core.print_out("Moldenfile written\n")
 
     orbitals = []

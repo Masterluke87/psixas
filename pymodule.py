@@ -27,7 +27,7 @@
 #
 # @END LICENSE
 #
-import sys
+import sys,os
 import numpy as np
 import psi4
 import psi4.driver.p4util as p4util
@@ -85,12 +85,28 @@ def run_psixas(name, **kwargs):
         uhf   = psi4.core.UHF(wfn,sup)
 
         prefix = psi4.core.get_local_option("PSIXAS","PREFIX")
-        Ca = np.load(prefix+"_gsorbs.npz")["Ca"]
-        Cb = np.load(prefix+"_gsorbs.npz")["Cb"]
-        occa = np.load(prefix+"_gsorbs.npz")["occa"]
-        occb = np.load(prefix+"_gsorbs.npz")["occb"]
-        epsa = np.load(prefix+"_gsorbs.npz")["epsa"]
-        epsb = np.load(prefix+"_gsorbs.npz")["epsb"]
+        psi4.core.reopen_outfile() 
+        if os.path.exists(prefix+"_exorbs.npz"):
+            psi4.core.print_out("\nUsing excited orbital file! \n\n")
+            Ca = np.load(prefix+"_exorbs.npz")["Ca"]
+            Cb = np.load(prefix+"_exorbs.npz")["Cb"]
+            occa = np.load(prefix+"_exorbs.npz")["occa"]
+            occb = np.load(prefix+"_exorbs.npz")["occb"]
+            epsa = np.load(prefix+"_exorbs.npz")["epsa"]
+            epsb = np.load(prefix+"_exorbs.npz")["epsb"]
+        else:
+            if os.path.exists(prefix+"_gsorbs.npz"):
+                psi4.core.print_out("\nUsing ground state orbitals!\n\n")
+                Ca = np.load(prefix+"_gsorbs.npz")["Ca"]
+                Cb = np.load(prefix+"_gsorbs.npz")["Cb"]
+                occa = np.load(prefix+"_gsorbs.npz")["occa"]
+                occb = np.load(prefix+"_gsorbs.npz")["occb"]
+                epsa = np.load(prefix+"_gsorbs.npz")["epsa"]
+                epsb = np.load(prefix+"_gsorbs.npz")["epsb"]
+            else:
+                Exception("Cannot Localize, there are no orbitals!")
+
+        psi4.core.be_quiet()
 
 
         locCa = psi4.core.Matrix(wfn.nso(),len(loc_sub))

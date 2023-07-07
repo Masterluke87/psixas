@@ -261,6 +261,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
                     FMOb[:idx,idx]     = 0.0
                     FMOb[(idx+1):,idx] = 0.0
                 elif i["spin"]=="a":
+                    idx = i["orb"]
                     FMOa[idx,:idx]     = 0.0
                     FMOa[idx,(idx+1):] = 0.0
                     FMOa[:idx,idx]     = 0.0

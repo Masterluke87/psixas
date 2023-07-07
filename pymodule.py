@@ -83,6 +83,7 @@ def run_psixas(name, **kwargs):
         sup.allocate()
 
         uhf   = psi4.core.UHF(wfn,sup)
+        orbitalFileName = None
 
         prefix = psi4.core.get_local_option("PSIXAS","PREFIX")
         psi4.core.reopen_outfile() 
@@ -94,6 +95,7 @@ def run_psixas(name, **kwargs):
             occb = np.load(prefix+"_exorbs.npz")["occb"]
             epsa = np.load(prefix+"_exorbs.npz")["epsa"]
             epsb = np.load(prefix+"_exorbs.npz")["epsb"]
+            orbitalFileName = prefix+"_exorbs.npz"
         else:
             if os.path.exists(prefix+"_gsorbs.npz"):
                 psi4.core.print_out("\nUsing ground state orbitals!\n\n")
@@ -103,6 +105,7 @@ def run_psixas(name, **kwargs):
                 occb = np.load(prefix+"_gsorbs.npz")["occb"]
                 epsa = np.load(prefix+"_gsorbs.npz")["epsa"]
                 epsb = np.load(prefix+"_gsorbs.npz")["epsb"]
+                orbitalFileName = prefix+"_gsorbs.npz"
             else:
                 Exception("Cannot Localize, there are no orbitals!")
 
@@ -125,8 +128,8 @@ def run_psixas(name, **kwargs):
         Ca[:,loc_sub] = LocalA.L
         Cb[:,loc_sub] = LocalB.L
 
-        np.savez(prefix+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb)
-        psi4.core.print_out("Localized Orbitals written\n")
+        np.savez(orbitalFileName,Ca=Ca,Cb=Cb,occa=occa,occb=occb)
+        psi4.core.print_out(f"Localized Orbitals written as {orbitalFileName}\n")
 
         OCCA = psi4.core.Vector(nbf)
         OCCB = psi4.core.Vector(nbf)

@@ -205,7 +205,7 @@ def DFTGroundState(mol,func,**kwargs):
         CALC E
         """
         one_electron_E  = np.sum(Da * H)
-        one_electron_E += np.sum(Da * H)
+        one_electron_E += np.sum(Db * H)
         coulomb_E       = np.sum(Da * (Ja+Jb))
         coulomb_E      += np.sum(Db * (Ja+Jb))
 

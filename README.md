@@ -8,7 +8,17 @@ For details, please refer to our paper in the [Journal of Computational Chemistr
 Parts of the program were inspired by the [psi4numpy](https://github.com/psi4/psi4numpy) package.
 
 ## Install
-To install and use PSIXAS, you will need Psi4 already installed on your computer. You can then checkout the repository:
+
+### Install PSI4 via Conda (using conda-forge channel)
+To install the newest PSI4 version run (see also the PSI4 manual)
+
+```bash
+conda create -n psi4-new psi4 python=3.10 cmake eigen pybind11 boost gcc gxx gfortran -c conda-forge
+conda activate psi4-new
+```
+
+### Install PSIXAS 
+To install and use PSIXAS, you will need PSI4 already installed on your computer. You can then checkout the repository:
 ``` bash
 cd /path/to/psi4Plugins/
 git clone https://github.com/Masterluke87/psixas/
@@ -21,7 +31,7 @@ $(psi4 --plugin-compile)
 make 
 ```
 ## Run the Plugin
-To run th plugin you just have to set the PYTHONPATH variable:
+To run the plugin you just have to set the PYTHONPATH variable:
 ``` bash
 export PYTHONPATH=/path/to/psi4Plugins
 ```

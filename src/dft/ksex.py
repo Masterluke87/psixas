@@ -448,7 +448,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
             raise Exception("Maximum number of SCF cycles exceeded.")
 
     psi4.core.print_out("\n\n{:>20} {:12.8f} [Ha] \n".format("FINAL EX SCF ENERGY:",SCF_E))
-    gsE = psi4.core.get_variable('GS ENERGY')
+    gsE = psi4.get_variable('GS ENERGY')
     if gsE!=0.0:
         psi4.core.print_out("{:>20} {:12.8f} [Ha] \n".format("EXCITATION ENERGY:",SCF_E-gsE))
         psi4.core.print_out("{:>20} {:12.8f} [eV] \n\n".format("EXCITATION ENERGY:",(SCF_E-gsE)*27.211385))

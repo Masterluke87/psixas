@@ -6,7 +6,7 @@ conda or miniconda. Let's assume you created a new environment:
 
 .. code-block:: bash
 
-    conda create -n p4env psi4 psi4-dev -c psi4
+    conda create -n p4env psi4 python cmake eigen pybind11 boost gcc gxx gfortran -c conda-forge
     conda activate p4env
 
 this will install the most recent stable version of Psi4.

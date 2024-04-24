@@ -28,7 +28,7 @@
 # @END LICENSE
 #
 
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
 project(psixas CXX)
 

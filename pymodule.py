@@ -72,7 +72,7 @@ def run_psixas(name, **kwargs):
         DFTGroundState(mol,func,PREFIX=psi4.core.get_local_option("PSIXAS","PREFIX"))
 
     if "LOC" in mode:
-        loc_sub = np.array(psi4.core.get_local_option("PSIXAS","LOC_SUB"),dtype=np.int)
+        loc_sub = np.array(psi4.core.get_local_option("PSIXAS","LOC_SUB"),dtype=np.int32)
         printHeader("Entering Localization")
         psi4.core.be_quiet()
         wfn     = psi4.core.Wavefunction.build(mol,psi4.core.get_global_option('BASIS'))

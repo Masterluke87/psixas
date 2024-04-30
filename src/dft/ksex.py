@@ -145,6 +145,9 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
             i["ovl"] = np.max(ovl)
             occa[i["orb"]] = i["occ"]
 
+
+	
+
     for i in range(nbf):
         Cocca.np[:,i] *= np.sqrt(occa[i])
         Coccb.np[:,i] *= np.sqrt(occb[i])
@@ -200,6 +203,15 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     psi4.core.print_out("Index|Spin|Occ|Ovl|Freeze\n"+25*"-")
     for i in orbitals:
         psi4.core.print_out("\n{:^5}|{:^4}|{:^3}|{:^3}|{:^6}".format(i["orb"],i["spin"],i["occ"],'Yes' if i["DoOvl"] else 'No','Yes' if i["frz"] else 'No'))
+    
+    #psi4.core.print_out(f"{occa}")
+    #psi4.core.print_out(f"{occb}")
+    psi4.core.print_out(f"\n\nInitial Nalpha: {np.sum(occa)}")
+    psi4.core.print_out(f"\nInitial Nbeta: {np.sum(occb)}")
+
+    initialOcca = np.sum(occa)
+    initialOccb = np.sum(occb)
+
     psi4.core.print_out("\n\n")
 
     psi4.core.print_out(("{:^3} {:^14} {:^11} {:^11} {:^11} {:^5} {:^5} | {:^"+str(len(orbitals)*5)+"}| {:^11} {:^5}\n").format("#IT", "Escf",
@@ -394,7 +406,21 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
                     i["ovl"] = ovl[i["orb"]]
                 #Modify the occupation vector
                 occa[i["orb"]] = i["occ"]
-                
+        #Check if the sum of electrons in occa and occb is preserved
+        if np.sum(occa) != initialOcca:
+            diff = initialOcca - np.sum(occa)
+            if (diff <=1.0) and (diff > 0.0):
+                occa[nalpha] = diff
+            else:
+                raise Exception("This should not happen! Please Call a Developer.")
+        if np.sum(occb) != initialOccb:
+            diff = initialOccb-np.sum(occb)
+            if (diff<=1.0) and (diff > 0.0):
+                occb[nbeta]=diff
+            else:
+                raise Exception("This should not happen! Please Call a Developer.")
+
+               
 
         for i in range(nbf):
             Cocca.np[:,i] *= np.sqrt(occa[i])

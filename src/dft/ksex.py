@@ -371,10 +371,6 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
         occa[:] = 0.0
         occb[:] = 0.0
 
-        occa[:nalpha] = 1.0  #standard aufbau principle occupation
-        occb[:nbeta]  = 1.0
-
-
         for i in orbitals:
             if i["spin"]=="b":
                 """
@@ -406,19 +402,45 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
                     i["ovl"] = ovl[i["orb"]]
                 #Modify the occupation vector
                 occa[i["orb"]] = i["occ"]
-        #Check if the sum of electrons in occa and occb is preserved
+        
+        logging.info(f"occa before: {occa}")
+        logging.info(f"Modified alpha orbs: {[x['orb'] for x in orbitals if x['spin']=='a']}")
+        logging.info(f"Modified beta  orbs: {[x['orb'] for x in orbitals if x['spin']=='b']}")
+
+
         if np.sum(occa) != initialOcca:
             diff = initialOcca - np.sum(occa)
-            if (diff <=1.0) and (diff > 0.0):
-                occa[nalpha] = diff
-            else:
-                raise Exception("This should not happen! Please Call a Developer.")
+            for c,i in enumerate(occa):
+                if c not in [x['orb'] for x in orbitals if x['spin']=='a']:
+                    occa[c] = 1.0
+                    if diff>= 1.0:
+                        diff -= 1.0
+                    else:
+                        occa[c] = diff
+                        diff = 0.0
+                if diff<=0.0:
+                    break
         if np.sum(occb) != initialOccb:
-            diff = initialOccb-np.sum(occb)
-            if (diff<=1.0) and (diff > 0.0):
-                occb[nbeta]=diff
-            else:
-                raise Exception("This should not happen! Please Call a Developer.")
+            diff = initialOccb - np.sum(occb)
+            for c,i in enumerate(occb):
+                if c not in [x['orb'] for x in orbitals if x['spin']=='b']:
+                    occb[c] = 1.0
+                    if diff>= 1.0:
+                        diff -= 1.0
+                    else:
+                        occa[c] = diff
+                        diff = 0.0
+                if diff<=0.0:
+                    break
+        logging.info(f"occa after: {occa}")
+        logging.info(f"occb after: {occb}")
+
+       
+        #Check if the sum of electrons in occa and occb is preserved
+        if np.sum(occa) != initialOcca:
+            raise Exception("This should not happen! Please Call a Developer.")
+        if np.sum(occb) != initialOccb:
+            raise Exception("This should not happen! Please Call a Developer.")
 
                
 

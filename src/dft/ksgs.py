@@ -311,7 +311,7 @@ def DFTGroundState(mol,func,**kwargs):
             occb = np.zeros(nbf,dtype=np.float64)
             occa[:nalpha] = 1.0
             occb[:nbeta]  = 1.0
-            np.savez(options["PREFIX"]+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
+            np.savez(options["PREFIX"]+'_gsorbs',gsE=SCF_E, Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
             raise Exception("Maximum number of SCF cycles exceeded.")
 
     psi4.core.print_out("\n\nFINAL GS SCF ENERGY: {:12.8f} [Ha] \n\n".format(SCF_E))
@@ -326,7 +326,7 @@ def DFTGroundState(mol,func,**kwargs):
     
     psi4.core.print_out("Moldenfile written\n")
     
-    np.savez(options["PREFIX"]+'_gsorbs',Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
+    np.savez(options["PREFIX"]+'_gsorbs',gsE=SCF_E,Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb)
     psi4.core.print_out("Canoncical Orbitals written\n\n")                        
 
     psi4.core.set_variable('CURRENT ENERGY', SCF_E)

@@ -45,9 +45,13 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
         psi4.core.print_out("\nRestarting Calculation from: {}".format(options["PREFIX"]+"_exorbs.npz")) 
         Ca = np.load(options["PREFIX"]+"_exorbs.npz")["Ca"]
         Cb = np.load(options["PREFIX"]+"_exorbs.npz")["Cb"]
+        gsE = float(np.load(options["PREFIX"]+"_gsorbs.npz")["gsE"])
+        psi4.core.set_variable('GS ENERGY', gsE)
     else:
         Ca = np.load(options["PREFIX"]+"_gsorbs.npz")["Ca"]
         Cb = np.load(options["PREFIX"]+"_gsorbs.npz")["Cb"]
+        gsE = float(np.load(options["PREFIX"]+"_gsorbs.npz")["gsE"])
+        psi4.core.set_variable('GS ENERGY', gsE)
 
     """
     Grep the coefficients for later overlap
@@ -207,7 +211,7 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     #psi4.core.print_out(f"{occa}")
     #psi4.core.print_out(f"{occb}")
     psi4.core.print_out(f"\n\nInitial Nalpha: {np.sum(occa)}")
-    psi4.core.print_out(f"\nInitial Nbeta: {np.sum(occb)}")
+    psi4.core.print_out(f"\nInitial  Nbeta: {np.sum(occb)}")
 
     initialOcca = np.sum(occa)
     initialOccb = np.sum(occb)
@@ -762,6 +766,6 @@ def DFTExcitedState(mol,func,orbitals,**kwargs):
     MoldenWriter(options["PREFIX"]+'_ex.molden',wfn,Ca,Cb,epsa,epsb,occa,occb)
     
     psi4.core.print_out("\nMoldenfile written")
-    np.savez(options["PREFIX"]+'_exorbs',D=D,Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb,orbitals=orbitals)
+    np.savez(options["PREFIX"]+'_exorbs',gsE=gsE,D=D,Ca=Ca,Cb=Cb,occa=occa,occb=occb,epsa=epsa,epsb=epsb,orbitals=orbitals)
 
     psi4.core.set_variable('CURRENT ENERGY', SCF_E)
